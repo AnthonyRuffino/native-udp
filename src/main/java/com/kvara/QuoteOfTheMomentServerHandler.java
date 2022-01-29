@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class QuoteOfTheMomentServerHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
-    private static final Random random = new Random();
+    private final Random random = new Random();
 
     // Quotes from Mohandas K. Gandhi:
     private static final String[] quotes = {
@@ -20,7 +20,7 @@ public class QuoteOfTheMomentServerHandler extends SimpleChannelInboundHandler<D
             "The weak can never forgive. Forgiveness is the attribute of the strong.",
     };
 
-    private static String nextQuote() {
+    private String nextQuote() {
         int quoteId;
         synchronized (random) {
             quoteId = random.nextInt(quotes.length);
