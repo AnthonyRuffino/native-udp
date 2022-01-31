@@ -9,6 +9,8 @@ repositories {
 }
 
 dependencies {
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
+
     implementation 'io.quarkus:quarkus-vertx'
     implementation 'io.quarkus:quarkus-spring-di'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
@@ -23,8 +25,8 @@ group 'com.kvara'
 version '1.0.0-SNAPSHOT'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 compileJava {
