@@ -1,6 +1,6 @@
-package com.kvara;
+package com.kvara.start;
 
-import com.kvara.udp.UdpServer;
+import com.kvara.net.UdpServer;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.mutiny.core.Vertx;
 

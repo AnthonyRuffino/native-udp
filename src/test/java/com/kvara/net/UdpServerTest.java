@@ -1,4 +1,4 @@
-package com.kvara.udp;
+package com.kvara.net;
 
 
 import com.kvara.HelloReply;
@@ -21,16 +21,21 @@ class UdpServerTest {
     Character deliminator;
 
     @Test
-    public void usdServerTest() throws Exception {
+    public void udpServerTest() throws Exception {
+        doIt();
+        doIt();
+    }
 
+    private void doIt() throws Exception {
         DatagramSocket socket = new DatagramSocket();
         try {
 
             InetAddress host = InetAddress.getByName("localhost");
 
+            byte[] sessionId = ("sessionId" + deliminator).getBytes();
             byte[] eventBusAddress = ("hello" + deliminator).getBytes();
             byte[] helloRequest = HelloRequest.newBuilder().setName("Sarlomp").build().toByteArray();
-            byte[] payload = ArrayUtils.addAll(eventBusAddress, helloRequest);
+            byte[] payload = ArrayUtils.addAll(sessionId, ArrayUtils.addAll(eventBusAddress, helloRequest));
 
             DatagramPacket packet
                     = new DatagramPacket(payload, payload.length, host, 8888);
@@ -47,6 +52,7 @@ class UdpServerTest {
 
             HelloReply helloReply = HelloReply.parseFrom(packet.getData());
             assertEquals(expectedHelloReply, helloReply);
+
         } finally {
             socket.close();
         }

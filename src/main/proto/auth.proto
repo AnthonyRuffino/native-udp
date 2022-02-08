@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.kvara.auth";
+option java_outer_classname = "AuthGrpcProto";
+
+package hello;
+
+service AuthGrpc {
+    rpc Login (LoginRequest) returns (LoginResponse) {}
+}
+
+message LoginRequest {
+    string userName = 1;
+    string signedChallenge = 2;
+    string captcha = 3;
+    bytes publicKey = 4;
+}
+
+message LoginResponse {
+    string message = 1;
+    string advice = 2;
+}

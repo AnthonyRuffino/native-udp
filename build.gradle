@@ -9,6 +9,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'io.quarkus:quarkus-websockets'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
 
     implementation 'io.quarkus:quarkus-vertx'
