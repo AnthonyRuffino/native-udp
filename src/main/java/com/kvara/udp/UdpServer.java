@@ -63,7 +63,7 @@ public class UdpServer extends AbstractVerticle {
                 bootstrap.group(group)
                         .channel(NioDatagramChannel.class)
                         .option(ChannelOption.SO_BROADCAST, true)
-                        .handler(new UdpMessageHandler(vertx.eventBus(), udpMessageParser, flush));
+                        .handler(new UdpMessageHandler(vertx, udpMessageParser, flush));
 
                 System.out.println("binding UDP port: " + port);
                 Channel channel = bootstrap.bind(port).sync().channel();

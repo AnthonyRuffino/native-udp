@@ -5,7 +5,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
 import io.smallrye.mutiny.Uni;
-import io.vertx.mutiny.core.eventbus.EventBus;
+import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.eventbus.Message;
 
 import java.nio.ByteBuffer;
@@ -14,17 +14,17 @@ import java.util.function.Function;
 
 public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
-    private final EventBus eventBus;
+    private final Vertx vertx;
     private final Function<ByteBuffer, Optional<UdpParsedMessage>> udpMessageParser;
     private final boolean flush;
 
 
     public UdpMessageHandler(
-            EventBus eventBus,
+            Vertx vertx,
             Function<ByteBuffer, Optional<UdpParsedMessage>> udpMessageParser,
             boolean flush
     ) {
-        this.eventBus = eventBus;
+        this.vertx = vertx;
         this.udpMessageParser = udpMessageParser;
         this.flush = flush;
     }
@@ -61,7 +61,7 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
     }
 
     private Uni<Message<byte[]>> forward(UdpParsedMessage udpParsedMessage) {
-        return eventBus.request(udpParsedMessage.address(), udpParsedMessage.data());
+        return vertx.eventBus().request(udpParsedMessage.address(), udpParsedMessage.data());
     }
 
     @Override
