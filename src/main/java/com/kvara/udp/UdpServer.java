@@ -7,6 +7,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.smallrye.mutiny.vertx.core.AbstractVerticle;
+import io.vertx.core.Promise;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,11 +51,10 @@ public class UdpServer extends AbstractVerticle {
     @Override
     public void start(io.vertx.core.Promise<Void> startPromise) {
         System.out.println("Starting UdpVerticle");
-        startUdpServer();
-        startPromise.complete();
+        startUdpServer(Optional.of(startPromise));
     }
 
-    private void startUdpServer() {
+    private void startUdpServer(Optional<Promise<Void>> startPromise) {
         executor.submit(() -> {
             boolean errorAfterStartup = false;
             EventLoopGroup group = new NioEventLoopGroup();
@@ -69,6 +69,7 @@ public class UdpServer extends AbstractVerticle {
                 Channel channel = bootstrap.bind(port).sync().channel();
                 int boundPort = getPort(channel);
                 BOUND_PORTS.put(this.id, boundPort);
+                startPromise.ifPresent(Promise::complete);
                 System.out.println("bound UDP port: " + boundPort);
                 channel.closeFuture().await().addListener((closeResult) ->
                         System.out.println("closing UDP server...")
@@ -84,7 +85,7 @@ public class UdpServer extends AbstractVerticle {
                     System.out.println("Error while shutting down the UDP server: " + ex.getMessage());
                 } finally {
                     if (errorAfterStartup) {
-                        startUdpServer();
+                        startUdpServer(Optional.empty());
                     } else {
                         System.exit(-1);
                     }
