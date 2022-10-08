@@ -1,6 +1,7 @@
 package com.kvara.udp;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -11,8 +12,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 
 import javax.enterprise.context.ApplicationScoped;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -20,10 +26,14 @@ import java.util.function.Function;
 @ApplicationScoped
 public class UdpServer extends AbstractVerticle {
 
+    private final String id;
+
     private final ExecutorService executor;
 
     @Value("${com.kvara.udp.UdpServer.port}")
     int port;
+
+    static Map<String, Integer> BOUND_PORTS = new HashMap<>();
 
     @Value("${com.kvara.udp.UdpServer.flush}")
     boolean flush;
@@ -34,6 +44,7 @@ public class UdpServer extends AbstractVerticle {
 
     public UdpServer() {
         this.executor = Executors.newFixedThreadPool(1);
+        this.id = UUID.randomUUID().toString();
     }
 
     @Override
@@ -45,19 +56,28 @@ public class UdpServer extends AbstractVerticle {
 
     private void startUdpServer() {
         executor.submit(() -> {
-            boolean isError = false;
+            boolean errorAfterStartup = false;
             EventLoopGroup group = new NioEventLoopGroup();
             try {
-                Bootstrap b = new Bootstrap();
-                b.group(group)
+                Bootstrap bootstrap = new Bootstrap();
+                bootstrap.group(group)
                         .channel(NioDatagramChannel.class)
                         .option(ChannelOption.SO_BROADCAST, true)
                         .handler(new UdpMessageHandler(vertx.eventBus(), udpMessageParser, flush));
 
                 System.out.println("binding UDP port: " + port);
-                b.bind(port).sync().channel().closeFuture().await();
+                Channel channel = bootstrap.bind(port).sync().channel();
+                int boundPort = getPort(channel);
+                BOUND_PORTS.put(this.id, boundPort);
+                System.out.println("bound UDP port: " + boundPort);
+                channel.closeFuture().await().addListener((closeResult) ->
+                        System.out.println("closing UDP server...")
+                );
+            } catch (UnsupportedSocketAddressImplementation ex) {
+                System.out.println("Error while running the UDP server: " + ex.getMessage());
+                ex.printStackTrace();
             } catch (Exception ex) {
-                isError = true;
+                errorAfterStartup = true;
                 System.out.println("Error while running the UDP server: " + ex.getMessage());
                 ex.printStackTrace();
             } finally {
@@ -66,14 +86,28 @@ public class UdpServer extends AbstractVerticle {
                 } catch (Exception ex) {
                     System.out.println("Error while shutting down the UDP server: " + ex.getMessage());
                 } finally {
-                    if (isError) {
+                    if (errorAfterStartup) {
                         startUdpServer();
+                    } else {
+                        System.exit(-1);
                     }
-
                 }
             }
         });
     }
 
+    private int getPort(Channel channel) {
+        SocketAddress socketAddress = channel.localAddress();
+        if (socketAddress instanceof InetSocketAddress) {
+            return ((InetSocketAddress) socketAddress).getPort();
+        }
+        throw new UnsupportedSocketAddressImplementation(socketAddress);
+    }
+
+    private static class UnsupportedSocketAddressImplementation extends RuntimeException {
+        public UnsupportedSocketAddressImplementation(SocketAddress socketAddress) {
+            super("Unsupported SocketAddress implementation: " + socketAddress.getClass().getTypeName());
+        }
+    }
 
 }

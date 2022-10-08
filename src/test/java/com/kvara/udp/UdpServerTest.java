@@ -6,11 +6,16 @@ import com.kvara.HelloRequest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.util.Optional;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -19,6 +24,9 @@ class UdpServerTest {
 
     @Value("${com.kvara.udp.UdpMessageParser.deliminator:|}")
     Character deliminator;
+
+    @Autowired
+    private UdpServer udpServer;
 
     @Test
     public void usdServerTest() throws Exception {
@@ -33,7 +41,7 @@ class UdpServerTest {
             byte[] payload = ArrayUtils.addAll(eventBusAddress, helloRequest);
 
             DatagramPacket packet
-                    = new DatagramPacket(payload, payload.length, host, 8888);
+                    = new DatagramPacket(payload, payload.length, host, UdpServer.BOUND_PORTS.values().stream().findFirst().orElseThrow());
             socket.send(packet);
 
             HelloReply expectedHelloReply = HelloReply.newBuilder()
