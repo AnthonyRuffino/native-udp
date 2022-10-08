@@ -73,9 +73,6 @@ public class UdpServer extends AbstractVerticle {
                 channel.closeFuture().await().addListener((closeResult) ->
                         System.out.println("closing UDP server...")
                 );
-            } catch (UnsupportedSocketAddressImplementation ex) {
-                System.out.println("Error while running the UDP server: " + ex.getMessage());
-                ex.printStackTrace();
             } catch (Exception ex) {
                 errorAfterStartup = true;
                 System.out.println("Error while running the UDP server: " + ex.getMessage());
@@ -98,16 +95,7 @@ public class UdpServer extends AbstractVerticle {
 
     private int getPort(Channel channel) {
         SocketAddress socketAddress = channel.localAddress();
-        if (socketAddress instanceof InetSocketAddress) {
-            return ((InetSocketAddress) socketAddress).getPort();
-        }
-        throw new UnsupportedSocketAddressImplementation(socketAddress);
-    }
-
-    private static class UnsupportedSocketAddressImplementation extends RuntimeException {
-        public UnsupportedSocketAddressImplementation(SocketAddress socketAddress) {
-            super("Unsupported SocketAddress implementation: " + socketAddress.getClass().getTypeName());
-        }
+        return ((InetSocketAddress) socketAddress).getPort();
     }
 
 }

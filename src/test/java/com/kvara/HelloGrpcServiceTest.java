@@ -1,13 +1,12 @@
 package com.kvara;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import io.quarkus.grpc.GrpcClient;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
-import io.quarkus.grpc.GrpcClient;
-import io.quarkus.test.junit.QuarkusTest;
-
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 public class HelloGrpcServiceTest {
@@ -18,8 +17,13 @@ public class HelloGrpcServiceTest {
     @Test
     public void testHello() {
         HelloReply reply = helloGrpc
-                .sayHello(HelloRequest.newBuilder().setName("Neo").build()).await().atMost(Duration.ofSeconds(5));
+                .sayHello(
+                        HelloRequest.newBuilder().setName("Neo").build()
+                )
+                .await()
+                .atMost(Duration.ofSeconds(5));
         assertEquals("Hello Neo!", reply.getMessage());
+        assertEquals("Take care!", reply.getAdvice());
     }
 
 }

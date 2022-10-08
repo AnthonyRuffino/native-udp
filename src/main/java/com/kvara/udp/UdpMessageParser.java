@@ -1,9 +1,9 @@
 package com.kvara.udp;
 
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.apache.commons.lang3.ArrayUtils;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ public class UdpMessageParser implements Function<ByteBuffer, Optional<UdpParsed
 
         return getAddress(content, capacity)
                 .map(address ->
-                    new UdpParsedMessage(address, getData(content, capacity))
+                        new UdpParsedMessage(address, getData(content, capacity))
                 );
     }
 
