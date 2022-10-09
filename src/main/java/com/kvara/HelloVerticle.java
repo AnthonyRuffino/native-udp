@@ -8,8 +8,8 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class HelloVerticle {
 
-    static final String MESSAGE_TAKE_CARE_ADVICE = "Take care!";
-    static final String MESSAGE_VULCAN_ADVICE = "Live long and prosper!";
+    public static final String MESSAGE_TAKE_CARE_ADVICE = "Take care!";
+    public static final String MESSAGE_VULCAN_ADVICE = "Live long and prosper!";
 
     @ConsumeEvent("hello")
     public byte[] hello(byte[] message) throws InvalidProtocolBufferException {

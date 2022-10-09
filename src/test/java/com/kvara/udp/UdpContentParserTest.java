@@ -1,5 +1,6 @@
 package com.kvara.udp;
 
+import com.kvara.MessageParser;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -14,7 +15,7 @@ class UdpContentParserTest {
     private static final String ADDRESS = "eventBusAddress";
     private static final String DATA = "data";
 
-    private static final UdpMessageParser ADDRESS_PARSER = new UdpMessageParser(DELIMINATOR);
+    private static final MessageParser ADDRESS_PARSER = new MessageParser(DELIMINATOR);
 
     @Test
     void verifyAddressAndContent() {

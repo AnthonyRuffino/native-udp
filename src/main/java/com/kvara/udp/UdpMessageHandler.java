@@ -1,6 +1,7 @@
 package com.kvara.udp;
 
 import com.kvara.HelloReply;
+import com.kvara.ParsedMessage;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -17,17 +18,17 @@ import java.util.function.Function;
 public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private final Vertx vertx;
-    private final Function<ByteBuffer, Optional<UdpParsedMessage>> udpMessageParser;
+    private final Function<ByteBuffer, Optional<ParsedMessage>> messageParser;
     private final boolean flush;
     private ChannelHandlerContext ctx;
 
     public UdpMessageHandler(
             Vertx vertx,
-            Function<ByteBuffer, Optional<UdpParsedMessage>> udpMessageParser,
+            Function<ByteBuffer, Optional<ParsedMessage>> messageParser,
             boolean flush
     ) {
         this.vertx = vertx;
-        this.udpMessageParser = udpMessageParser;
+        this.messageParser = messageParser;
         this.flush = flush;
     }
 
@@ -39,9 +40,9 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
 
     @Override
     public void channelRead0(ChannelHandlerContext context, DatagramPacket packet) {
-        udpMessageParser.apply(packet.content().nioBuffer())
+        messageParser.apply(packet.content().nioBuffer())
                 .ifPresentOrElse(
-                        udpParsedMessage -> process(udpParsedMessage, context, packet),
+                        parsedMessage -> process(parsedMessage, context, packet),
                         () -> logError(context, packet)
                 );
     }
@@ -55,9 +56,9 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
         ), packet.sender()));
     }
 
-    private void process(UdpParsedMessage udpParsedMessage, ChannelHandlerContext context, DatagramPacket packet) {
+    private void process(ParsedMessage parsedMessage, ChannelHandlerContext context, DatagramPacket packet) {
         InetSocketAddress sender = packet.sender();
-        forward(udpParsedMessage, sender)
+        forward(parsedMessage, sender)
                 .onItem()
                 .transform(message ->
                         new DatagramPacket(Unpooled.copiedBuffer(message.body()), sender)
@@ -71,12 +72,12 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
                 });
     }
 
-    private Uni<Message<byte[]>> forward(UdpParsedMessage udpParsedMessage, InetSocketAddress sender) {
-        if (udpParsedMessage.address().equals("callback")) {
+    private Uni<Message<byte[]>> forward(ParsedMessage parsedMessage, InetSocketAddress sender) {
+        if (parsedMessage.address().equals("callback")) {
             CallbackThread t = new CallbackThread(ctx, sender, 100);
             t.start();
         }
-        return vertx.eventBus().request(udpParsedMessage.address(), udpParsedMessage.data());
+        return vertx.eventBus().request(parsedMessage.address(), parsedMessage.data());
     }
 
     @Override

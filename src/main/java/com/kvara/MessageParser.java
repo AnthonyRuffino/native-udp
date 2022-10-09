@@ -1,4 +1,4 @@
-package com.kvara.udp;
+package com.kvara;
 
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -11,23 +11,23 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-@Component("udpMessageParser")
-public class UdpMessageParser implements Function<ByteBuffer, Optional<UdpParsedMessage>> {
+@Component("messageParser")
+public class MessageParser implements Function<ByteBuffer, Optional<ParsedMessage>> {
 
     private final Character deliminator;
 
-    public UdpMessageParser(@Value("${com.kvara.udp.UdpMessageParser.deliminator:|}") Character deliminator) {
+    public MessageParser(@Value("${com.kvara.MessageParser.deliminator:|}") Character deliminator) {
         this.deliminator = deliminator;
     }
 
     @Override
-    public Optional<UdpParsedMessage> apply(ByteBuffer content) {
+    public Optional<ParsedMessage> apply(ByteBuffer content) {
         var capacity = content.capacity();
         content.position(0);
 
         return getAddress(content, capacity)
                 .map(address ->
-                        new UdpParsedMessage(address, getData(content, capacity))
+                        new ParsedMessage(address, getData(content, capacity))
                 );
     }
 

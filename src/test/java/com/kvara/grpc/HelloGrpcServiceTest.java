@@ -1,5 +1,8 @@
-package com.kvara;
+package com.kvara.grpc;
 
+import com.kvara.HelloGrpc;
+import com.kvara.HelloReply;
+import com.kvara.HelloRequest;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;

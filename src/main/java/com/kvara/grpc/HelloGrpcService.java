@@ -1,5 +1,9 @@
-package com.kvara;
+package com.kvara.grpc;
 
+import com.kvara.HelloGrpc;
+import com.kvara.HelloReply;
+import com.kvara.HelloRequest;
+import com.kvara.HelloVerticle;
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
 

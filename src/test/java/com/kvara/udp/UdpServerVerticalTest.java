@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class UdpServerVerticalTest {
 
-    @Value("${com.kvara.udp.UdpMessageParser.deliminator:|}")
+    @Value("${com.kvara.MessageParser.deliminator:|}")
     Character deliminator;
 
     @Test

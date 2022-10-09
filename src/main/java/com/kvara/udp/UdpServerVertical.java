@@ -1,5 +1,6 @@
 package com.kvara.udp;
 
+import com.kvara.ParsedMessage;
 import io.smallrye.mutiny.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
@@ -20,8 +20,6 @@ import java.util.function.Function;
 public class UdpServerVertical extends AbstractVerticle {
 
     private final String id;
-
-    private final ExecutorService executor;
 
     @Value("${com.kvara.udp.UdpServer.port}")
     int port;
@@ -32,11 +30,10 @@ public class UdpServerVertical extends AbstractVerticle {
     boolean flush;
 
     @Autowired
-    @Qualifier("udpMessageParser")
-    private Function<ByteBuffer, Optional<UdpParsedMessage>> udpMessageParser;
+    @Qualifier("messageParser")
+    private Function<ByteBuffer, Optional<ParsedMessage>> messageParser;
 
     public UdpServerVertical() {
-        this.executor = Executors.newFixedThreadPool(1);
         this.id = UUID.randomUUID().toString();
     }
 
@@ -45,7 +42,7 @@ public class UdpServerVertical extends AbstractVerticle {
         System.out.println("... Starting UdpServerVertical");
 
         UdpServer udpServer = new UdpServer(
-                new UdpMessageHandler(vertx, udpMessageParser, flush),
+                new UdpMessageHandler(vertx, messageParser, flush),
                 Executors.newFixedThreadPool(1),
                 port
         );
