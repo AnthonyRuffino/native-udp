@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -55,37 +55,65 @@ class UdpServerTest {
     }
 
     @Test
-    public void udpServerBootstrappedClientTest() {
-        int port = UdpServer.BOUND_PORTS.values().stream().findFirst().orElseThrow();
+    public void udpServerBootstrappedClientTest() throws InterruptedException {
 
-        HelloReply expectedHelloReply = HelloReply.newBuilder()
-                .setMessage("Goodbye Sarlomp")
-                .setAdvice("Live long and prosper!")
-                .build();
 
-        byte[] messageBytes = ArrayUtils.addAll(
-                ("goodbye" + deliminator).getBytes(),
-                HelloRequest.newBuilder().setName("Sarlomp").build().toByteArray()
-        );
-
-        BootstrappedTestClient<HelloReply> bootstrappedTestClient = new BootstrappedTestClient<>("localhost", port, 50) {
-            @Override
-            protected HelloReply parse(ByteBuffer byteBuffer) throws Exception {
-                return HelloReply.parseFrom(byteBuffer);
-            }
-        };
-
-        bootstrappedTestClient.shutdownOnComplete = false;
-        bootstrappedTestClient.runTest(
-                messageBytes, expectedHelloReply
-        );
-
-        bootstrappedTestClient.shutdownOnComplete = true;
-        bootstrappedTestClient.runTest(
-                messageBytes,
-                () -> {
-                    assertEquals("Live long and prosper!", bootstrappedTestClient.getResponse().getAdvice());
+        List<BootstrappedTestClient.Assertion> assertions = List.of(
+                (response) -> {
+                    var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    assertEquals("Hello Sarlomp", actualHelloReply.getMessage());
+                },
+                (response) -> {
+                    var actualGoodbyeReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    assertEquals("Goodbye Sarlomp", actualGoodbyeReply.getMessage());
                 }
+        );
+
+        BootstrappedTestClient bootstrappedTestClient = getClient()
+                .withAssertions(
+                        assertions
+                );
+
+        bootstrappedTestClient.sendMessage(getMessageBytes("hello"), 50);
+        Thread.sleep(50);
+        bootstrappedTestClient.sendMessage(getMessageBytes("goodbye"), 50);
+        bootstrappedTestClient.checkAssertions(50);
+    }
+
+    @Test
+    public void udpServerBootstrappedClientCallbackTest() throws InterruptedException {
+
+        List<BootstrappedTestClient.Assertion> assertions = List.of(
+                (response) -> {
+                    var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    assertEquals("I'll call you back Sarlomp", actualHelloReply.getMessage());
+                },
+                (response) -> {
+                    var actualGoodbyeReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    assertEquals("Off Thread Message!", actualGoodbyeReply.getMessage());
+                }
+        );
+
+        BootstrappedTestClient bootstrappedTestClient = getClient()
+                .withAssertions(assertions);
+        bootstrappedTestClient.debug = false;
+
+        bootstrappedTestClient.sendMessage(getMessageBytes("callback"), 50);
+        bootstrappedTestClient.checkAssertions(1000);
+    }
+
+    private static BootstrappedTestClient getClient() {
+        return new BootstrappedTestClient(
+                "localhost",
+                UdpServer.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
+                50
+        );
+    }
+
+    private byte[] getMessageBytes(String prefix) {
+        return ArrayUtils.addAll(
+                (prefix + deliminator).getBytes(),
+                HelloRequest.newBuilder().setName("Sarlomp").build().toByteArray()
         );
     }
 }

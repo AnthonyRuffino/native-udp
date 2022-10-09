@@ -36,4 +36,16 @@ public class HelloVerticle {
         return helloReply.toByteArray();
     }
 
+    @ConsumeEvent("callback")
+    public byte[] callback(byte[] message) throws InvalidProtocolBufferException {
+        HelloRequest helloRequest = HelloRequest.parseFrom(message);
+
+        HelloReply helloReply = HelloReply.newBuilder()
+                .setMessage("I'll call you back " + helloRequest.getName())
+                .setAdvice("Be patient!")
+                .build();
+
+        return helloReply.toByteArray();
+    }
+
 }

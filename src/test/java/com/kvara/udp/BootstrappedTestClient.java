@@ -13,75 +13,89 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 
-import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-public abstract class BootstrappedTestClient<T> {
-    protected final String host;
-    protected final int port;
-    protected final int connectTimeoutMilliseconds;
+public class BootstrappedTestClient {
+    private final String host;
+    private final int port;
+    private CountDownLatch latch;
     protected Channel channel;
     protected EventLoopGroup workGroup = new NioEventLoopGroup();
-    protected T response;
 
-    protected boolean shutdownOnComplete = true;
+    private final Map<Long, StatefulAssertion> assertions = new ConcurrentHashMap<>();
+    protected boolean debug;
 
-    abstract protected T parse(ByteBuffer byteBuffer) throws Exception;
+    public abstract static class StatefulAssertion {
+        abstract void runAssertion() throws Exception;
 
+        protected DatagramPacket response;
+    }
+
+    public interface Assertion {
+        void runAssertion(DatagramPacket response) throws Exception;
+    }
 
     /**
      * Constructor
      *
      * @param port {@link Integer} port of server
      */
-    public BootstrappedTestClient(String host, int port, int connectTimeoutMilliseconds) {
+    public BootstrappedTestClient(String host, int port, int connectTimeout) {
         this.host = host;
         this.port = port;
-        this.connectTimeoutMilliseconds = connectTimeoutMilliseconds;
+        this.channel = startup(connectTimeout);
     }
 
-    public T getResponse() {
-        return response;
+    public BootstrappedTestClient withAssertions(List<Assertion> assertionsList) {
+        int numberOfAssertions = assertionsList.size();
+        this.assertions.clear();
+        this.latch = new CountDownLatch(numberOfAssertions);
+
+        long index = numberOfAssertions;
+        for (Assertion assertion : assertionsList) {
+            this.assertions.put(index--, new StatefulAssertion() {
+                @Override
+                void runAssertion() throws Exception {
+                    assertion.runAssertion(this.response);
+                }
+            });
+        }
+        return this;
     }
 
-    public void runTest(byte[] messageBytes, T expectedResponse) {
-        runTest(
-                messageBytes,
-                () -> assertEquals(expectedResponse, getResponse())
-        );
+    public BootstrappedTestClient withAssertion(Assertion assertion) {
+        return withAssertions(List.of(assertion));
     }
 
-    public void runTest(byte[] messageBytes, Runnable assertion) {
-        runTest(
-                messageBytes,
-                assertion,
-                50,
-                50
-        );
-    }
 
-    public void runTest(byte[] messageBytes, Runnable assertion, int writeTimeout, int closeTimeout) {
+    public void checkAssertions(int completionTimeout) {
         try {
-            Channel channel = startup();
-
-            boolean writeWasSuccessful = channel
-                    .writeAndFlush(Unpooled.wrappedBuffer(messageBytes))
-                    .await(writeTimeout, TimeUnit.MILLISECONDS);
-
-            if (!writeWasSuccessful) {
-                throw new RuntimeException("Client took too long to write to channel!");
+            if (!latch.await(completionTimeout, TimeUnit.MILLISECONDS)) {
+                throw new AssertionError("The test context did not complete in time!");
             }
-
-            channel.closeFuture().await(closeTimeout, TimeUnit.MILLISECONDS);
-            assertion.run();
+            for (var assertion : assertions.entrySet()) {
+                assertion.getValue().runAssertion();
+            }
+            channel.closeFuture().await(completionTimeout, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            if (shutdownOnComplete) {
-                shutdown();
-            }
+            //shutdown();
+        }
+    }
+
+    public void sendMessage(byte[] messageBytes, int writeTimeout) throws InterruptedException {
+        boolean writeWasSuccessful = channel
+                .writeAndFlush(Unpooled.wrappedBuffer(messageBytes))
+                .await(writeTimeout, TimeUnit.MILLISECONDS);
+
+        if (!writeWasSuccessful) {
+            throw new RuntimeException("Client took too long to write to channel!");
         }
     }
 
@@ -91,40 +105,59 @@ public abstract class BootstrappedTestClient<T> {
      * @return {@link ChannelFuture}
      * @throws Exception
      */
-    public Channel startup() throws Exception {
-        Bootstrap b = new Bootstrap();
-        b.group(workGroup);
-        b.channel(NioDatagramChannel.class);
-        b.handler(new ChannelInitializer<DatagramChannel>() {
-            protected void initChannel(DatagramChannel datagramChannel) throws Exception {
-                datagramChannel.pipeline().addLast(
-                        new SimpleChannelInboundHandler<DatagramPacket>() {
+    private Channel startup(int connectTimeout) {
+        try {
+            Bootstrap b = new Bootstrap();
+            b.group(workGroup);
+            b.channel(NioDatagramChannel.class);
+            b.handler(new ChannelInitializer<DatagramChannel>() {
+                protected void initChannel(DatagramChannel datagramChannel) {
+                    datagramChannel.pipeline().addLast(
+                            new SimpleChannelInboundHandler<DatagramPacket>() {
 
-                            @Override
-                            protected void channelRead0(ChannelHandlerContext ctx, io.netty.channel.socket.DatagramPacket msg) throws Exception {
-                                response = parse(msg.content().nioBuffer());
-                            }
+                                @Override
+                                protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) {
+                                    debugMessage(msg);
+                                    assertions.get(latch.getCount()).response = msg.copy();
+                                    latch.countDown();
+                                }
 
-                            @Override
-                            public void channelActive(ChannelHandlerContext ctx) throws Exception {
-                                super.channelActive(ctx);
+                                @Override
+                                public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                                    super.channelActive(ctx);
+                                }
                             }
-                        }
-                );
+                    );
+                }
+            });
+            ChannelFuture channelFuture = b.connect(host, this.port);
+            if (!channelFuture.await(connectTimeout, TimeUnit.MILLISECONDS)) {
+                throw new RuntimeException("Client took too long to connect");
             }
-        });
-        ChannelFuture channelFuture = b.connect("localhost", this.port);
-        if (!channelFuture.await(connectTimeoutMilliseconds, TimeUnit.MILLISECONDS)) {
-            throw new RuntimeException("Client took too long to connect");
+            this.channel = channelFuture.channel();
+            return this.channel;
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-        this.channel = channelFuture.channel();
-        return this.channel;
+    }
+
+    private void debugMessage(DatagramPacket msg) {
+        if (this.debug) {
+            try {
+                System.out.println("#################### Latch: " + latch.getCount());
+                System.out.println(Charset.defaultCharset().decode(msg.copy().content().nioBuffer()));
+                System.out.println("####################");
+            } catch (Exception e) {
+                System.out.println("fwefeargreageargheargharehtrh");
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
      * Shutdown a client
      */
-    public void shutdown() {
+    private void shutdown() {
         workGroup.shutdownGracefully();
     }
 }
