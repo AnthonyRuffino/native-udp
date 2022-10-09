@@ -24,8 +24,7 @@ class UdpServerVerticalTest {
     @Test
     public void udpServerRawDatagramPacketTest() throws Exception {
 
-        DatagramSocket socket = new DatagramSocket();
-        try {
+        try (DatagramSocket socket = new DatagramSocket()) {
 
             InetAddress host = InetAddress.getByName("localhost");
 
@@ -49,8 +48,6 @@ class UdpServerVerticalTest {
 
             HelloReply helloReply = HelloReply.parseFrom(packet.getData());
             assertEquals(expectedHelloReply, helloReply);
-        } finally {
-            socket.close();
         }
     }
 
