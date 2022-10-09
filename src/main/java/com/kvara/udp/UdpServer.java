@@ -2,93 +2,70 @@ package com.kvara.udp;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.smallrye.mutiny.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 
-import javax.enterprise.context.ApplicationScoped;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Function;
+import java.util.function.Consumer;
 
-@ApplicationScoped
-public class UdpServer extends AbstractVerticle {
-
-    private final String id;
-
+public class UdpServer {
+    private final ChannelHandler channelHandler;
     private final ExecutorService executor;
+    final int port;
 
-    @Value("${com.kvara.udp.UdpServer.port}")
-    int port;
+    private Optional<Consumer<Integer>> maybePortConsumer = Optional.empty();
+    private Optional<Consumer<Exception>> maybeExceptionConsumer = Optional.empty();
 
-    static Map<String, Integer> BOUND_PORTS = new HashMap<>();
 
-    @Value("${com.kvara.udp.UdpServer.flush}")
-    boolean flush;
-
-    @Autowired
-    @Qualifier("udpMessageParser")
-    private Function<ByteBuffer, Optional<UdpParsedMessage>> udpMessageParser;
-
-    public UdpServer() {
-        this.executor = Executors.newFixedThreadPool(1);
-        this.id = UUID.randomUUID().toString();
+    public UdpServer(
+            ChannelHandler channelHandler,
+            ExecutorService executor,
+            int port
+    ) {
+        this.channelHandler = channelHandler;
+        this.executor = executor;
+        this.port = port;
     }
 
-    @Override
-    public void start(io.vertx.core.Promise<Void> startPromise) {
-        System.out.println("Starting UdpVerticle");
-        startUdpServer(Optional.of(startPromise));
+    public UdpServer withPortConsumer(Consumer<Integer> portConsumer) {
+        this.maybePortConsumer = Optional.of(portConsumer);
+        return this;
     }
 
-    private void startUdpServer(Optional<Promise<Void>> startPromise) {
+    public UdpServer withExceptionConsumer(Consumer<Exception> exceptionConsumer) {
+        this.maybeExceptionConsumer = Optional.of(exceptionConsumer);
+        return this;
+    }
+
+    public void startUdpServer() {
         executor.submit(() -> {
-            boolean errorAfterStartup = false;
             EventLoopGroup group = new NioEventLoopGroup();
             try {
                 Bootstrap bootstrap = new Bootstrap();
                 bootstrap.group(group)
                         .channel(NioDatagramChannel.class)
                         .option(ChannelOption.SO_BROADCAST, true)
-                        .handler(new UdpMessageHandler(vertx, udpMessageParser, flush));
+                        .handler(channelHandler);
 
-                System.out.println("binding UDP port: " + port);
                 Channel channel = bootstrap.bind(port).sync().channel();
                 int boundPort = getPort(channel);
-                BOUND_PORTS.put(this.id, boundPort);
-                startPromise.ifPresent(Promise::complete);
-                System.out.println("bound UDP port: " + boundPort);
+                maybePortConsumer.ifPresent(portCallback -> portCallback.accept(boundPort));
                 channel.closeFuture().await().addListener((closeResult) ->
                         System.out.println("closing UDP server...")
                 );
             } catch (Exception ex) {
-                errorAfterStartup = true;
-                System.out.println("Error while running the UDP server: " + ex.getMessage());
-                ex.printStackTrace();
+                maybeExceptionConsumer.ifPresent(exceptionConsumer -> exceptionConsumer.accept(ex));
             } finally {
                 try {
                     group.shutdownGracefully();
                 } catch (Exception ex) {
                     System.out.println("Error while shutting down the UDP server: " + ex.getMessage());
-                } finally {
-                    if (errorAfterStartup) {
-                        startUdpServer(Optional.empty());
-                    } else {
-                        System.exit(-1);
-                    }
                 }
             }
         });

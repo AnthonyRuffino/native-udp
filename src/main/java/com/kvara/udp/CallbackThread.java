@@ -5,7 +5,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 
-import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 
@@ -23,28 +22,23 @@ public class CallbackThread extends Thread {
     }
 
     public void run() {
-        try {
-            Thread.sleep(delay);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        HelloReply expectedHelloReply = HelloReply.newBuilder()
-                .setMessage("Off Thread Message!")
-                .setAdvice("This message was sent in another thread!")
-                .build();
-
-        byte[] bytes = expectedHelloReply.toByteArray();
-        var length = bytes.length;
-
         try (DatagramSocket datagramSocket = new DatagramSocket()) {
+            Thread.sleep(delay);
+
+            HelloReply expectedHelloReply = HelloReply.newBuilder()
+                    .setMessage("Off Thread Message!")
+                    .setAdvice("This message was sent in another thread!")
+                    .build();
+
+            byte[] bytes = expectedHelloReply.toByteArray();
+            var length = bytes.length;
+
             datagramSocket.connect(recipient);
             java.net.DatagramPacket sendPacket = new java.net.DatagramPacket(bytes, length);
             datagramSocket.send(sendPacket);
             channelHandlerContext.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(bytes), recipient));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
     }
 }

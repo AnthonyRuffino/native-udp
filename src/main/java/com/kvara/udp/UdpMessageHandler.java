@@ -1,5 +1,6 @@
 package com.kvara.udp;
 
+import com.kvara.HelloReply;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -46,8 +47,12 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
     }
 
     private void logError(ChannelHandlerContext context, DatagramPacket packet) {
-        System.err.println("Unable to parse UDP message");
-        //context.write(new DatagramPacket(Unpooled.copiedBuffer("Something went wrong!".getBytes()), packet.sender()));
+        context.write(new DatagramPacket(Unpooled.copiedBuffer(
+                HelloReply.newBuilder()
+                        .setMessage("Unable to parse UDP message")
+                        .build()
+                        .toByteArray()
+        ), packet.sender()));
     }
 
     private void process(UdpParsedMessage udpParsedMessage, ChannelHandlerContext context, DatagramPacket packet) {

@@ -16,7 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
-class UdpServerTest {
+class UdpServerVerticalTest {
 
     @Value("${com.kvara.udp.UdpMessageParser.deliminator:|}")
     Character deliminator;
@@ -33,7 +33,7 @@ class UdpServerTest {
             byte[] helloRequest = HelloRequest.newBuilder().setName("Sarlomp").build().toByteArray();
             byte[] payload = ArrayUtils.addAll(eventBusAddress, helloRequest);
 
-            int port = UdpServer.BOUND_PORTS.values().stream().findFirst().orElseThrow();
+            int port = UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
             DatagramPacket packet
                     = new DatagramPacket(payload, payload.length, host, port);
             socket.send(packet);
@@ -74,9 +74,9 @@ class UdpServerTest {
                         assertions
                 );
 
-        bootstrappedTestClient.sendMessage(getMessageBytes("hello"), 50);
+        bootstrappedTestClient.sendMessage(getMessageBytes("hello", deliminator), 50);
         Thread.sleep(50);
-        bootstrappedTestClient.sendMessage(getMessageBytes("goodbye"), 50);
+        bootstrappedTestClient.sendMessage(getMessageBytes("goodbye", deliminator), 50);
         bootstrappedTestClient.checkAssertions(50);
     }
 
@@ -98,19 +98,40 @@ class UdpServerTest {
                 .withAssertions(assertions);
         bootstrappedTestClient.debug = false;
 
-        bootstrappedTestClient.sendMessage(getMessageBytes("callback"), 50);
+        bootstrappedTestClient.sendMessage(getMessageBytes("callback", deliminator), 50);
         bootstrappedTestClient.checkAssertions(1000);
+    }
+
+
+    @Test
+    public void brokenDeliminatorTest() throws InterruptedException {
+
+
+        List<BootstrappedTestClient.Assertion> assertions = List.of(
+                (response) -> {
+                    var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    assertEquals("Unable to parse UDP message", actualHelloReply.getMessage());
+                }
+        );
+
+        BootstrappedTestClient bootstrappedTestClient = getClient()
+                .withAssertions(
+                        assertions
+                );
+
+        bootstrappedTestClient.sendMessage(getMessageBytes("hello", '$'), 50);
+        bootstrappedTestClient.checkAssertions(50);
     }
 
     private static BootstrappedTestClient getClient() {
         return new BootstrappedTestClient(
                 "localhost",
-                UdpServer.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
+                UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
                 50
         );
     }
 
-    private byte[] getMessageBytes(String prefix) {
+    private byte[] getMessageBytes(String prefix, Character deliminator) {
         return ArrayUtils.addAll(
                 (prefix + deliminator).getBytes(),
                 HelloRequest.newBuilder().setName("Sarlomp").build().toByteArray()
