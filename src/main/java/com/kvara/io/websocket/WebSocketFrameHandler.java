@@ -1,5 +1,6 @@
 package com.kvara.io.websocket;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -13,9 +14,9 @@ import java.util.Map;
 
 public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
-    private static Map<Integer, ChannelHandlerContext> CONTEXTS = new HashMap<>();
-
     private static final Logger logger = LoggerFactory.getLogger(WebSocketFrameHandler.class);
+    private static final Map<String, ChannelHandlerContext> SESSIONS = new HashMap<>();
+    private static final String TEXT_COMMAND_JOIN = "join";
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
@@ -24,14 +25,15 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
             String request = ((TextWebSocketFrame) frame).text();
             logger.debug("{} received {}", ctx.channel(), request);
 
-            int sessionId = ctx.hashCode();
-            if ("join".equals(request)) {
-                CONTEXTS.put(sessionId, ctx);
+            String sessionId = getChannelId(ctx.channel());
+            String sessionShortId = getChannelShortId(ctx.channel());
+            if (TEXT_COMMAND_JOIN.equals(request)) {
+                SESSIONS.put(ctx.channel().id().asLongText(), ctx);
             }
 
-            CONTEXTS.values().forEach(c -> {
-                if (c.hashCode() != sessionId) {
-                    c.writeAndFlush(new TextWebSocketFrame(sessionId + ": " + request));
+            SESSIONS.forEach((key, value) -> {
+                if (!key.equals(sessionId)) {
+                    value.writeAndFlush(new TextWebSocketFrame(sessionShortId + ": " + request));
                 }
             });
 
@@ -61,11 +63,19 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
         super.channelUnregistered(ctx);
-        CONTEXTS.remove(ctx.hashCode());
+        SESSIONS.remove(getChannelId(ctx.channel()));
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
+    }
+
+    private String getChannelId(Channel channel) {
+        return channel.id().asLongText();
+    }
+
+    private String getChannelShortId(Channel channel) {
+        return channel.id().asShortText();
     }
 }
