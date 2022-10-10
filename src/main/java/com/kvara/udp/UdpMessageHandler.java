@@ -19,17 +19,14 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
 
     private final Vertx vertx;
     private final Function<ByteBuffer, Optional<ParsedMessage>> messageParser;
-    private final boolean flush;
     private ChannelHandlerContext ctx;
 
     public UdpMessageHandler(
             Vertx vertx,
-            Function<ByteBuffer, Optional<ParsedMessage>> messageParser,
-            boolean flush
+            Function<ByteBuffer, Optional<ParsedMessage>> messageParser
     ) {
         this.vertx = vertx;
         this.messageParser = messageParser;
-        this.flush = flush;
     }
 
     @Override
@@ -65,10 +62,7 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
                 )
                 .subscribe()
                 .with(datagramPacket -> {
-                    context.write(datagramPacket);
-                    if (flush) {
-                        context.flush();
-                    }
+                    context.writeAndFlush(datagramPacket);
                 });
     }
 

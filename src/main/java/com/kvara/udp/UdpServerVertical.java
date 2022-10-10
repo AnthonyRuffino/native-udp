@@ -21,13 +21,10 @@ public class UdpServerVertical extends AbstractVerticle {
 
     private final String id;
 
-    @Value("${com.kvara.udp.UdpServer.port}")
+    @Value("${com.kvara.udp.server.port}")
     int port;
 
     static Map<String, Integer> BOUND_PORTS = new HashMap<>();
-
-    @Value("${com.kvara.udp.UdpServer.flush}")
-    boolean flush;
 
     @Autowired
     @Qualifier("messageParser")
@@ -42,7 +39,7 @@ public class UdpServerVertical extends AbstractVerticle {
         System.out.println("... Starting UdpServerVertical");
 
         UdpServer udpServer = new UdpServer(
-                new UdpMessageHandler(vertx, messageParser, flush),
+                new UdpMessageHandler(vertx, messageParser),
                 Executors.newFixedThreadPool(1),
                 port
         );

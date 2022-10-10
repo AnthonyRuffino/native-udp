@@ -16,7 +16,7 @@ public class MessageParser implements Function<ByteBuffer, Optional<ParsedMessag
 
     private final Character deliminator;
 
-    public MessageParser(@Value("${com.kvara.MessageParser.deliminator:|}") Character deliminator) {
+    public MessageParser(@Value("${com.kvara.message.deliminator:|}") Character deliminator) {
         this.deliminator = deliminator;
     }
 
