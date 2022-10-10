@@ -9,7 +9,11 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import org.apache.commons.lang3.ArrayUtils;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class UdpBootstrappedTestClient extends AbstractTestClient {
@@ -42,7 +46,8 @@ public class UdpBootstrappedTestClient extends AbstractTestClient {
 
                                 @Override
                                 protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) {
-                                    debugMessage(msg.copy().content().toString());
+
+                                    debugMessage(byteBufferToString(msg.copy().content().nioBuffer()));
                                     assertions.get(latch.getCount()).setResponse(msg.copy());
                                     latch.countDown();
                                 }
@@ -63,6 +68,21 @@ public class UdpBootstrappedTestClient extends AbstractTestClient {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private String byteBufferToString(ByteBuffer content) {
+        var capacity = content.capacity();
+        content.position(0);
+
+        return new String(getData(content, capacity));
+    }
+
+    private byte[] getData(ByteBuffer content, int capacity) {
+        List<Byte> remainingBytes = new ArrayList<>();
+        while (content.position() < capacity) {
+            remainingBytes.add(content.get());
+        }
+        return ArrayUtils.toPrimitive(remainingBytes.toArray(new Byte[0]));
     }
 
 }

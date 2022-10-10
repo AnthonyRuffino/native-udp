@@ -35,7 +35,6 @@ class WebSocketServerVerticalTest {
                 .withAssertions(
                         assertions
                 );
-        client.setDebug(false);
         client.startup();
 
         client.sendMessage(new TextWebSocketFrame("join"), 50);
@@ -59,7 +58,6 @@ class WebSocketServerVerticalTest {
                 .withAssertions(
                         assertions
                 );
-        client1.setDebug(false);
         client1.startup();
 
         WebSocketFrame frame1 = new TextWebSocketFrame("join");
@@ -74,7 +72,6 @@ class WebSocketServerVerticalTest {
                 .withAssertions(
                         assertions
                 );
-        client2.setDebug(false);
         client2.startup();
 
         WebSocketFrame frame2 = new TextWebSocketFrame("join");

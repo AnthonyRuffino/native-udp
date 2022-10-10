@@ -74,8 +74,6 @@ class UdpServerVerticalTest {
                 .withAssertions(
                         assertions
                 );
-        udpBootstrappedTestClient.setDebug(false);
-
         udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", deliminator), 50);
         Thread.sleep(50);
         udpBootstrappedTestClient.sendMessage(getMessageBytes("goodbye", deliminator), 50);
@@ -100,7 +98,6 @@ class UdpServerVerticalTest {
 
         AbstractTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(assertions);
-        udpBootstrappedTestClient.setDebug(false);
 
         udpBootstrappedTestClient.sendMessage(getMessageBytes("callback", deliminator), 50);
         udpBootstrappedTestClient.checkAssertions(1000);

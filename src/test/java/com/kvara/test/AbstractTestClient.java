@@ -27,7 +27,6 @@ public abstract class AbstractTestClient {
     protected EventLoopGroup workGroup = new NioEventLoopGroup();
 
     protected final Map<Long, StatefulAssertion> assertions = new ConcurrentHashMap<>();
-    protected boolean debug;
 
     public abstract static class StatefulAssertion {
         abstract void runAssertion() throws Exception;
@@ -117,13 +116,11 @@ public abstract class AbstractTestClient {
     }
 
     protected void debugMessage(String message) {
-        if (this.debug) {
-            try {
-                logger.debug("Latch   : " + latch.getCount());
-                logger.debug("Message : " + message);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        try {
+            logger.debug("Latch   : " + latch.getCount());
+            logger.debug("Message : " + message);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -134,9 +131,5 @@ public abstract class AbstractTestClient {
      */
     public Future<?> shutdown() {
         return workGroup.shutdownGracefully();
-    }
-
-    public void setDebug(boolean debug) {
-        this.debug = debug;
     }
 }

@@ -70,14 +70,12 @@ public class CountDownWebSocketClientHandler extends SimpleChannelInboundHandler
             return;
         }
 
-        if (msg instanceof FullHttpResponse) {
-            FullHttpResponse response = (FullHttpResponse) msg;
+        if (msg instanceof FullHttpResponse response) {
             throw new IllegalStateException(
                     "Unexpected FullHttpResponse (getStatus=" + response.status() +
                             ", content=" + response.content().toString(CharsetUtil.UTF_8) + ')');
-        } else if (msg instanceof TextWebSocketFrame) {
-            TextWebSocketFrame frame = (TextWebSocketFrame) msg;
-            debug.accept(frame.copy().toString());
+        } else if (msg instanceof TextWebSocketFrame frame) {
+            debug.accept(frame.copy().text());
             AbstractTestClient.StatefulAssertion statefulAssertion = assertions.get(latch.getCount());
             if (statefulAssertion != null) {
                 statefulAssertion.setResponse(frame.copy());
