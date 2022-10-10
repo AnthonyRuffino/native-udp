@@ -1,19 +1,12 @@
 package com.kvara;
 
-import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.DatagramChannel;
-import io.netty.channel.socket.DatagramPacket;
-import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.util.concurrent.Future;
 
-import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractTestClient {
     protected final String host;
     protected final int port;
+    protected final int connectTimeout;
     protected CountDownLatch latch;
     protected Channel channel;
     protected EventLoopGroup workGroup = new NioEventLoopGroup();
@@ -33,19 +27,19 @@ public abstract class AbstractTestClient {
     public abstract static class StatefulAssertion {
         abstract void runAssertion() throws Exception;
 
-        protected DatagramPacket response;
+        protected Object response;
 
-        public DatagramPacket getResponse() {
+        public Object getResponse() {
             return response;
         }
 
-        public void setResponse(DatagramPacket response) {
+        public void setResponse(Object response) {
             this.response = response;
         }
     }
 
     public interface Assertion {
-        void runAssertion(DatagramPacket response) throws Exception;
+        void runAssertion(Object response) throws Exception;
     }
 
     /**
@@ -54,7 +48,7 @@ public abstract class AbstractTestClient {
      * @return {@link ChannelFuture}
      * @throws Exception
      */
-    protected abstract Channel startup(int connectTimeout);
+    public abstract void startup();
 
     /**
      * Constructor
@@ -64,7 +58,7 @@ public abstract class AbstractTestClient {
     public AbstractTestClient(String host, int port, int connectTimeout) {
         this.host = host;
         this.port = port;
-        this.channel = startup(connectTimeout);
+        this.connectTimeout = connectTimeout;
     }
 
     public AbstractTestClient withAssertions(List<Assertion> assertionsList) {
@@ -100,14 +94,16 @@ public abstract class AbstractTestClient {
             channel.closeFuture().await(completionTimeout, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            //shutdown();
         }
     }
 
     public void sendMessage(byte[] messageBytes, int writeTimeout) throws InterruptedException {
+        sendMessage(Unpooled.wrappedBuffer(messageBytes), writeTimeout);
+    }
+
+    public void sendMessage(Object message, int writeTimeout) throws InterruptedException {
         boolean writeWasSuccessful = channel
-                .writeAndFlush(Unpooled.wrappedBuffer(messageBytes))
+                .writeAndFlush(message)
                 .await(writeTimeout, TimeUnit.MILLISECONDS);
 
         if (!writeWasSuccessful) {
@@ -115,14 +111,13 @@ public abstract class AbstractTestClient {
         }
     }
 
-    protected void debugMessage(DatagramPacket msg) {
+    protected void debugMessage(String message) {
         if (this.debug) {
             try {
                 System.out.println("#################### Latch: " + latch.getCount());
-                System.out.println(Charset.defaultCharset().decode(msg.copy().content().nioBuffer()));
+                System.out.println(message);
                 System.out.println("####################");
             } catch (Exception e) {
-                System.out.println("fwefeargreageargheargharehtrh");
                 e.printStackTrace();
             }
         }
@@ -130,9 +125,11 @@ public abstract class AbstractTestClient {
 
     /**
      * Shutdown a client
+     *
+     * @return
      */
-    protected void shutdown() {
-        workGroup.shutdownGracefully();
+    public Future<?> shutdown() {
+        return workGroup.shutdownGracefully();
     }
 
     public void setDebug(boolean debug) {

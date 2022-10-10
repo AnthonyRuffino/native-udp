@@ -1,14 +1,14 @@
 package com.kvara.websocket;
 
 
+import com.kvara.AbstractTestClient;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.util.StringUtils;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -17,116 +17,74 @@ class WebSocketServerVerticalTest {
 
     @Test
     public void webSocketSessionTest() throws Exception {
-        int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
-        WebSocketBootstrappedTestClient.connect("localhost", port, "/websocket", false);
-    }
 
-    @Test
-    public void webSocketHtmlTest() throws Exception {
-        int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
-
-        HttpClient client = HttpClient.newHttpClient();
-
-        HttpRequest request = HttpRequest.newBuilder(
-                        URI.create("http://localhost:" + port))
-                .header("accept", "application/json")
-                .build();
-
-        String expectedHtml = EXPECTED_HTML.formatted(port);
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, response.statusCode());
-        assertEquals(StringUtils.trimAllWhitespace(expectedHtml), StringUtils.trimAllWhitespace(response.body()));
-    }
-
-    @Test
-    public void webSocketNotFoundTest() throws Exception {
-        int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
-
-        HttpClient client = HttpClient.newHttpClient();
-
-        HttpRequest request = HttpRequest.newBuilder(
-                        URI.create("http://localhost:" + port + "/unknown-resource"))
-                .header("accept", "application/json")
-                .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(404, response.statusCode());
-        assertEquals("404 Not Found", response.body());
-    }
-
-    @Test
-    public void webSocketPostMethodNotAllowedTest() throws Exception {
-        methodNotAllowedTest(HttpRequest.newBuilder().POST(HttpRequest.BodyPublishers.noBody()));
-    }
-
-    @Test
-    public void webSocketPutMethodNotAllowedTest() throws Exception {
-        methodNotAllowedTest(HttpRequest.newBuilder().PUT(HttpRequest.BodyPublishers.noBody()));
-    }
-
-    @Test
-    public void webSocketDeleteMethodNotAllowedTest() throws Exception {
-        methodNotAllowedTest(HttpRequest.newBuilder().DELETE());
-    }
-
-    private void methodNotAllowedTest(HttpRequest.Builder requestBuilder) throws Exception {
-        int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
-
-        HttpClient client = HttpClient.newHttpClient();
-        requestBuilder.uri(URI.create("http://localhost:" + port));
-
-        HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
-        assertEquals(403, response.statusCode());
-        assertEquals("403 Forbidden", response.body());
-    }
-
-    private static final String EXPECTED_HTML = """
-            <html>
-            <head><title>Web Socket Test</title></head>
-            <body>
-            <script type="text/javascript">
-                var socket;
-                if (!window.WebSocket) {
-                    window.WebSocket = window.MozWebSocket;
+        List<AbstractTestClient.Assertion> assertions = List.of(
+                (response) -> {
+                    TextWebSocketFrame textFrame = (TextWebSocketFrame) response;
+                    assertEquals("TEST", textFrame.text());
                 }
-                if (window.WebSocket) {
-                    socket = new WebSocket("ws://localhost:%d/websocket");
-                    socket.onmessage = function (event) {
-                        var ta = document.getElementById('responseText');
-                        ta.value = ta.value + '\\n' + event.data
-                    };
-                    socket.onopen = function (event) {
-                        var ta = document.getElementById('responseText');
-                        ta.value = "Web Socket opened!";
-                    };
-                    socket.onclose = function (event) {
-                        var ta = document.getElementById('responseText');
-                        ta.value = ta.value + "Web Socket closed";
-                    };
-                } else {
-                    alert("Your browser does not support Web Socket.");
-                }
-                        
-                function send(message) {
-                    if (!window.WebSocket) {
-                        return;
-                    }
-                    if (socket.readyState == WebSocket.OPEN) {
-                        socket.send(message);
-                    } else {
-                        alert("The socket is not open.");
-                    }
-                }
-            </script>
-            <form onsubmit="return false;">
-                <input type="text" name="message" value="Hello, World!"/><input type="button" value="Send Web Socket Data"
-                                                                                onclick="send(this.form.message.value)"/>
-                <h3>Output</h3>
-                <textarea id="responseText" style="width:500px;height:300px;"></textarea>
-            </form>
-            </body>
-            </html>""";
+        );
 
+        AbstractTestClient client = getClient()
+                .withAssertions(
+                        assertions
+                );
+        client.setDebug(false);
+        client.startup();
+
+        WebSocketFrame frame = new TextWebSocketFrame("test");
+        client.sendMessage(frame, 50);
+        client.checkAssertions(50);
+
+    }
+
+
+    @Test
+    public void webSocketSessionJoinTest() throws Exception {
+
+        List<AbstractTestClient.Assertion> assertions = List.of(
+                (response) -> {
+                    TextWebSocketFrame textFrame = (TextWebSocketFrame) response;
+                    assertEquals("JOIN", textFrame.text());
+                }
+        );
+
+        AbstractTestClient client1 = getClient()
+                .withAssertions(
+                        assertions
+                );
+        client1.setDebug(false);
+        client1.startup();
+
+        WebSocketFrame frame1 = new TextWebSocketFrame("join");
+        client1.sendMessage(frame1, 50);
+        client1.checkAssertions(50);
+
+        if (!client1.shutdown().await(5000, TimeUnit.MILLISECONDS)) {
+            throw new RuntimeException("Client1 took too long to shutdown.");
+        }
+
+        AbstractTestClient client2 = getClient()
+                .withAssertions(
+                        assertions
+                );
+        client2.setDebug(false);
+        client2.startup();
+
+        WebSocketFrame frame2 = new TextWebSocketFrame("join");
+        client2.sendMessage(frame2, 50);
+        client2.checkAssertions(50);
+
+    }
+
+    private static WebSocketBootstrappedTestClient getClient() {
+        return new WebSocketBootstrappedTestClient(
+                "localhost",
+                WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
+                500, "/websocket",
+                false,
+                500
+        );
+    }
 
 }

@@ -4,12 +4,12 @@ package com.kvara.udp;
 import com.kvara.AbstractTestClient;
 import com.kvara.HelloReply;
 import com.kvara.HelloRequest;
+import io.netty.channel.socket.DatagramPacket;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.List;
@@ -34,8 +34,8 @@ class UdpServerVerticalTest {
             byte[] payload = ArrayUtils.addAll(eventBusAddress, helloRequest);
 
             int port = UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
-            DatagramPacket packet
-                    = new DatagramPacket(payload, payload.length, host, port);
+            java.net.DatagramPacket packet
+                    = new java.net.DatagramPacket(payload, payload.length, host, port);
             socket.send(packet);
 
             HelloReply expectedHelloReply = HelloReply.newBuilder()
@@ -44,7 +44,7 @@ class UdpServerVerticalTest {
                     .build();
 
             byte[] receivedBytes = new byte[expectedHelloReply.toByteArray().length];
-            packet = new DatagramPacket(receivedBytes, receivedBytes.length);
+            packet = new java.net.DatagramPacket(receivedBytes, receivedBytes.length);
             socket.receive(packet);
 
             HelloReply helloReply = HelloReply.parseFrom(packet.getData());
@@ -58,11 +58,13 @@ class UdpServerVerticalTest {
 
         List<AbstractTestClient.Assertion> assertions = List.of(
                 (response) -> {
-                    var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    DatagramPacket packet = (DatagramPacket) response;
+                    var actualHelloReply = HelloReply.parseFrom(packet.content().nioBuffer());
                     assertEquals("Hello Sarlomp", actualHelloReply.getMessage());
                 },
                 (response) -> {
-                    var actualGoodbyeReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    DatagramPacket packet = (DatagramPacket) response;
+                    var actualGoodbyeReply = HelloReply.parseFrom(packet.content().nioBuffer());
                     assertEquals("Goodbye Sarlomp", actualGoodbyeReply.getMessage());
                 }
         );
@@ -71,6 +73,7 @@ class UdpServerVerticalTest {
                 .withAssertions(
                         assertions
                 );
+        udpBootstrappedTestClient.setDebug(false);
 
         udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", deliminator), 50);
         Thread.sleep(50);
@@ -83,11 +86,13 @@ class UdpServerVerticalTest {
 
         List<AbstractTestClient.Assertion> assertions = List.of(
                 (response) -> {
-                    var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    DatagramPacket packet = (DatagramPacket) response;
+                    var actualHelloReply = HelloReply.parseFrom(packet.content().nioBuffer());
                     assertEquals("I'll call you back Sarlomp", actualHelloReply.getMessage());
                 },
                 (response) -> {
-                    var actualGoodbyeReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    DatagramPacket packet = (DatagramPacket) response;
+                    var actualGoodbyeReply = HelloReply.parseFrom(packet.content().nioBuffer());
                     assertEquals("Off Thread Message!", actualGoodbyeReply.getMessage());
                 }
         );
@@ -107,7 +112,8 @@ class UdpServerVerticalTest {
 
         List<AbstractTestClient.Assertion> assertions = List.of(
                 (response) -> {
-                    var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
+                    DatagramPacket packet = (DatagramPacket) response;
+                    var actualHelloReply = HelloReply.parseFrom(packet.content().nioBuffer());
                     assertEquals("Unable to parse UDP message", actualHelloReply.getMessage());
                 }
         );
@@ -122,11 +128,13 @@ class UdpServerVerticalTest {
     }
 
     private static UdpBootstrappedTestClient getClient() {
-        return new UdpBootstrappedTestClient(
+        UdpBootstrappedTestClient client = new UdpBootstrappedTestClient(
                 "localhost",
                 UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
                 50
         );
+        client.startup();
+        return client;
     }
 
     private byte[] getMessageBytes(String prefix, Character deliminator) {

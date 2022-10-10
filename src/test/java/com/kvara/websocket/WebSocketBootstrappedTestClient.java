@@ -17,51 +17,77 @@ package com.kvara.websocket;
  */
 
 
+import com.kvara.AbstractTestClient;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
+import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.util.CharsetUtil;
 
+import javax.net.ssl.SSLException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 
 
-public final class WebSocketBootstrappedTestClient {
+public final class WebSocketBootstrappedTestClient extends AbstractTestClient {
 
-    public static void connect(String host, int port, String path, boolean ssl) throws Exception {
 
-        String scheme = ssl ? "wss://" : "ws://";
+    private final String path;
+    private final boolean ssl;
+    private final int handshakeTimeout;
 
-        final SslContext sslCtx;
-        if (ssl) {
-            sslCtx = SslContextBuilder.forClient()
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        } else {
-            sslCtx = null;
-        }
+    public WebSocketBootstrappedTestClient(String host, int port, int connectTimeout, String path, boolean ssl, int handshakeTimeout) {
+        super(host, port, connectTimeout);
+        this.path = path;
+        this.ssl = ssl;
+        this.handshakeTimeout = handshakeTimeout;
+    }
 
-        URI uri = new URI(scheme + host + path);
+    @Override
+    public void startup() {
+        workGroup = new NioEventLoopGroup();
 
-        EventLoopGroup group = new NioEventLoopGroup();
         try {
-            final WebSocketClientHandler handler =
-                    new WebSocketClientHandler(
+            String scheme = ssl ? "wss://" : "ws://";
+
+            final SslContext sslCtx;
+            if (ssl) {
+                sslCtx = SslContextBuilder.forClient()
+                        .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            } else {
+                sslCtx = null;
+            }
+
+            URI uri = new URI(scheme + host + path);
+
+            final CountDownWebSocketClientHandler handler =
+                    new CountDownWebSocketClientHandler(
                             WebSocketClientHandshakerFactory.newHandshaker(
                                     uri, WebSocketVersion.V13, null, false, new DefaultHttpHeaders()));
 
+
             Bootstrap b = new Bootstrap();
-            b.group(group)
+            b.group(workGroup)
                     .channel(NioSocketChannel.class)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
@@ -73,32 +99,94 @@ public final class WebSocketBootstrappedTestClient {
                             p.addLast(
                                     new HttpClientCodec(),
                                     new HttpObjectAggregator(8192),
-                                    handler);
+                                    handler
+                            );
                         }
                     });
 
-            Channel ch = b.connect(uri.getHost(), port).sync().channel();
-            handler.handshakeFuture().sync();
+            ChannelFuture channelFuture = b.connect(uri.getHost(), port);
+            if (!channelFuture.await(connectTimeout, TimeUnit.MILLISECONDS)) {
+                throw new RuntimeException("Client took too long to connect");
+            }
 
-//            BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
-//            while (true) {
-//                String msg = console.readLine();
-//                if (msg == null) {
-//                    break;
-//                } else if ("bye".equalsIgnoreCase(msg)) {
-//                    ch.writeAndFlush(new CloseWebSocketFrame());
-//                    ch.closeFuture().sync();
-//                    break;
-//                } else if ("ping".equalsIgnoreCase(msg)) {
-//                    WebSocketFrame frame = new PingWebSocketFrame(Unpooled.wrappedBuffer(new byte[]{8, 1, 8, 1}));
-//                    ch.writeAndFlush(frame);
-//                } else {
-//                    WebSocketFrame frame = new TextWebSocketFrame(msg);
-//                    ch.writeAndFlush(frame);
-//                }
-//            }
-        } finally {
-            group.shutdownGracefully();
+            if (!handler.handshakeFuture().await(handshakeTimeout, TimeUnit.MILLISECONDS)) {
+                throw new RuntimeException("Handshake took too long");
+            }
+
+            this.channel = channelFuture.channel();
+        } catch (URISyntaxException | SSLException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public final class CountDownWebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
+
+        private final WebSocketClientHandshaker handshaker;
+        private ChannelPromise handshakeFuture;
+
+        public CountDownWebSocketClientHandler(WebSocketClientHandshaker handshaker) {
+            this.handshaker = handshaker;
+        }
+
+        public ChannelFuture handshakeFuture() {
+            return handshakeFuture;
+        }
+
+        @Override
+        public void handlerAdded(ChannelHandlerContext ctx) {
+            handshakeFuture = ctx.newPromise();
+        }
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) {
+            handshaker.handshake(ctx.channel());
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) {
+            System.out.println("WebSocket Client disconnected!");
+        }
+
+        @Override
+        public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+            Channel ch = ctx.channel();
+            if (!handshaker.isHandshakeComplete()) {
+                try {
+                    handshaker.finishHandshake(ch, (FullHttpResponse) msg);
+                    System.out.println("WebSocket Client connected!");
+                    handshakeFuture.setSuccess();
+                } catch (WebSocketHandshakeException e) {
+                    System.out.println("WebSocket Client failed to connect");
+                    handshakeFuture.setFailure(e);
+                }
+                return;
+            }
+
+            if (msg instanceof FullHttpResponse) {
+                FullHttpResponse response = (FullHttpResponse) msg;
+                throw new IllegalStateException(
+                        "Unexpected FullHttpResponse (getStatus=" + response.getStatus() +
+                                ", content=" + response.content().toString(CharsetUtil.UTF_8) + ')');
+            } else if (msg instanceof TextWebSocketFrame) {
+                TextWebSocketFrame frame = (TextWebSocketFrame) msg;
+                debugMessage(frame.copy().toString());
+                StatefulAssertion statefulAssertion = assertions.get(latch.getCount());
+                if (statefulAssertion != null) {
+                    statefulAssertion.setResponse(frame.copy());
+                    latch.countDown();
+                } else {
+                    throw new RuntimeException("Unexpected message received!");
+                }
+            }
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+            cause.printStackTrace();
+            if (!handshakeFuture.isDone()) {
+                handshakeFuture.setFailure(cause);
+            }
+            ctx.close();
         }
     }
 }

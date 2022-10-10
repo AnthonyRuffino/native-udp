@@ -35,7 +35,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
                 }
             });
 
-            ctx.channel().writeAndFlush(new TextWebSocketFrame("-> " + request.toUpperCase(Locale.US)));
+            ctx.channel().writeAndFlush(new TextWebSocketFrame(request.toUpperCase(Locale.US)));
         } else {
             String message = "unsupported frame type: " + frame.getClass().getName();
             throw new UnsupportedOperationException(message);
@@ -61,6 +61,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
         super.channelUnregistered(ctx);
+        CONTEXTS.remove(ctx.hashCode());
     }
 
     @Override

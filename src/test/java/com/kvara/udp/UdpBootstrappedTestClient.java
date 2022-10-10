@@ -2,7 +2,6 @@ package com.kvara.udp;
 
 import com.kvara.AbstractTestClient;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -31,7 +30,7 @@ public class UdpBootstrappedTestClient extends AbstractTestClient {
      * @return {@link ChannelFuture}
      * @throws Exception
      */
-    protected Channel startup(int connectTimeout) {
+    public void startup() {
         try {
             Bootstrap b = new Bootstrap();
             b.group(workGroup);
@@ -43,7 +42,7 @@ public class UdpBootstrappedTestClient extends AbstractTestClient {
 
                                 @Override
                                 protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) {
-                                    debugMessage(msg);
+                                    debugMessage(msg.copy().content().toString());
                                     assertions.get(latch.getCount()).setResponse(msg.copy());
                                     latch.countDown();
                                 }
@@ -61,7 +60,6 @@ public class UdpBootstrappedTestClient extends AbstractTestClient {
                 throw new RuntimeException("Client took too long to connect");
             }
             this.channel = channelFuture.channel();
-            return this.channel;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

@@ -58,7 +58,7 @@ public class WebSocketIndexPageHandler extends SimpleChannelInboundHandler<FullH
             List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
             return String.join(NEWLINE, lines);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Could not load WebSocket UI HTML: " + e.getMessage());
         }
         return "WebSocket HTML content was not loaded.";
     }
