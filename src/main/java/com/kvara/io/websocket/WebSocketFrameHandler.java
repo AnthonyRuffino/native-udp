@@ -25,8 +25,8 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
 
-        if (frame instanceof TextWebSocketFrame) {
-            String textMessage = ((TextWebSocketFrame) frame).text();
+        if (frame instanceof TextWebSocketFrame textFrame) {
+            String textMessage = textFrame.text();
             logger.debug("{} received {}", ctx.channel(), textMessage);
 
             String sessionId = getChannelId(ctx.channel());
