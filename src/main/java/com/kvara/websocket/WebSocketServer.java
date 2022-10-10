@@ -55,16 +55,16 @@ public class WebSocketServer {
                         .handler(new LoggingHandler(LogLevel.INFO))
                         .childHandler(channelHandler);
 
-                Channel ch = b.bind(port).sync().channel();
+                Channel channel = b.bind(port).sync().channel();
 
-                System.out.println("Open your web browser and navigate to " +
-                        (false ? "https" : "http") + "://127.0.0.1:" + port + '/');
+                int boundPort = getPort(channel);
+                maybePortConsumer.ifPresent(p -> p.accept(boundPort));
 
-                maybePortConsumer.ifPresent(p -> p.accept(port));
-
-                ch.closeFuture().sync();
+                channel.closeFuture().await().addListener((closeResult) ->
+                        System.out.println("closing WebSocket server...")
+                );
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                maybeExceptionConsumer.ifPresent(exceptionConsumer -> exceptionConsumer.accept(e));
             } finally {
                 bossGroup.shutdownGracefully();
                 workerGroup.shutdownGracefully();

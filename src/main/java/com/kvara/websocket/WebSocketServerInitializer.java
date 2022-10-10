@@ -13,9 +13,11 @@ public class WebSocketServerInitializer extends ChannelInitializer<SocketChannel
     private static final String WEBSOCKET_PATH = "/websocket";
 
     private final SslContext sslCtx;
+    private String htmlTemplatePath;
 
-    public WebSocketServerInitializer(SslContext sslCtx) {
+    public WebSocketServerInitializer(SslContext sslCtx, String htmlTemplatePath) {
         this.sslCtx = sslCtx;
+        this.htmlTemplatePath = htmlTemplatePath;
     }
 
     @Override
@@ -27,7 +29,7 @@ public class WebSocketServerInitializer extends ChannelInitializer<SocketChannel
         pipeline.addLast(new HttpServerCodec());
         pipeline.addLast(new HttpObjectAggregator(65536));
         pipeline.addLast(new WebSocketServerProtocolHandler(WEBSOCKET_PATH, null, true));
-        pipeline.addLast(new WebSocketIndexPageHandler(WEBSOCKET_PATH));
+        pipeline.addLast(new WebSocketIndexPageHandler(WEBSOCKET_PATH, htmlTemplatePath));
         pipeline.addLast(new WebSocketFrameHandler());
     }
 }

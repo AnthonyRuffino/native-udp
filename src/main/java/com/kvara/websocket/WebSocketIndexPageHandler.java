@@ -18,7 +18,6 @@ import io.netty.util.CharsetUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,32 +33,34 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 public class WebSocketIndexPageHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private final String websocketPath;
+    private final String htmlTemplatePath;
     private final String htmlContent;
+
 
     private static final String NEWLINE = "\r\n";
 
-    public WebSocketIndexPageHandler(String websocketPath) {
+    public WebSocketIndexPageHandler(String websocketPath, String htmlTemplatePath) {
         this.websocketPath = websocketPath;
+        this.htmlTemplatePath = htmlTemplatePath;
         this.htmlContent = loadHtmlContent();
     }
 
     private String loadHtmlContent() {
         try {
             ClassLoader classLoader = getClass().getClassLoader();
-            String fileName = "static/websockets.html";
-            URL resource = classLoader.getResource(fileName);
+            URL resource = classLoader.getResource(htmlTemplatePath);
 
             if (resource == null) {
-                throw new IllegalArgumentException("file not found! " + fileName);
+                throw new IOException("file not found! " + htmlTemplatePath);
             }
 
             File file = new File(resource.toURI());
             List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
             return String.join(NEWLINE, lines);
-        } catch (IOException | URISyntaxException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        return "Web socket content was not loaded";
+        return "WebSocket HTML content was not loaded.";
     }
 
     @Override
