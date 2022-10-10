@@ -22,7 +22,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
 
         if (frame instanceof TextWebSocketFrame) {
             String request = ((TextWebSocketFrame) frame).text();
-            logger.info("{} received {}", ctx.channel(), request);
+            logger.debug("{} received {}", ctx.channel(), request);
 
             int sessionId = ctx.hashCode();
             if ("join".equals(request)) {

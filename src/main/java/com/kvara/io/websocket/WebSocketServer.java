@@ -8,6 +8,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -16,6 +18,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 public class WebSocketServer {
+
+    private static final Logger logger = LoggerFactory.getLogger(WebSocketServer.class);
+
     private final ChannelHandler channelHandler;
     private final ExecutorService executor;
     final int port;
@@ -61,7 +66,7 @@ public class WebSocketServer {
                 maybePortConsumer.ifPresent(p -> p.accept(boundPort));
 
                 channel.closeFuture().await().addListener((closeResult) ->
-                        System.out.println("closing WebSocket server...")
+                        logger.info("closing WebSocketServer")
                 );
             } catch (InterruptedException e) {
                 maybeExceptionConsumer.ifPresent(exceptionConsumer -> exceptionConsumer.accept(e));

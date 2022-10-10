@@ -15,9 +15,10 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,6 +32,8 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 public class WebSocketIndexPageHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+
+    private static final Logger logger = LoggerFactory.getLogger(WebSocketIndexPageHandler.class);
 
     private final String websocketPath;
     private final String htmlTemplatePath;
@@ -51,16 +54,16 @@ public class WebSocketIndexPageHandler extends SimpleChannelInboundHandler<FullH
             URL resource = classLoader.getResource(htmlTemplatePath);
 
             if (resource == null) {
-                throw new IOException("file not found! " + htmlTemplatePath);
+                throw new RuntimeException("WebSocket UI HTML resource could not be located: '%s'".formatted(htmlTemplatePath));
             }
 
             File file = new File(resource.toURI());
             List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
             return String.join(NEWLINE, lines);
         } catch (Exception e) {
-            System.out.println("Could not load WebSocket UI HTML: " + e.getMessage());
+            logger.error("Exception while loading WebSocket UI HTML: " + e.getMessage(), e);
         }
-        return "WebSocket HTML content was not loaded.";
+        return "WebSocket HTML content was missing.";
     }
 
     @Override

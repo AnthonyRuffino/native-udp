@@ -3,6 +3,8 @@ package com.kvara.io.udp;
 import com.kvara.io.ParsedMessage;
 import io.smallrye.mutiny.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +21,8 @@ import java.util.function.Function;
 @ApplicationScoped
 public class UdpServerVertical extends AbstractVerticle {
 
+    private static final Logger logger = LoggerFactory.getLogger(UdpServerVertical.class);
+
     private final String id;
 
     @Value("${com.kvara.io.udp.server.port}")
@@ -28,7 +32,7 @@ public class UdpServerVertical extends AbstractVerticle {
 
     @Autowired
     @Qualifier("messageParser")
-    private Function<ByteBuffer, Optional<ParsedMessage>> messageParser;
+    Function<ByteBuffer, Optional<ParsedMessage>> messageParser;
 
     public UdpServerVertical() {
         this.id = UUID.randomUUID().toString();
@@ -36,7 +40,7 @@ public class UdpServerVertical extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> startPromise) {
-        System.out.println("... Starting UdpServerVertical");
+        logger.info("starting UdpServerVertical");
 
         UdpServer udpServer = new UdpServer(
                 new UdpMessageHandler(vertx, messageParser),
@@ -46,7 +50,7 @@ public class UdpServerVertical extends AbstractVerticle {
 
         udpServer
                 .withPortConsumer(port -> {
-                    System.out.println("... bound UDP port ->" + port);
+                    logger.info("bound UDP port -> %s".formatted(port));
                     BOUND_PORTS.put(this.id, port);
                     startPromise.tryComplete();
                 })

@@ -6,6 +6,8 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +16,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractTestClient {
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractTestClient.class);
+
     protected final String host;
     protected final int port;
     protected final int connectTimeout;
@@ -114,9 +119,8 @@ public abstract class AbstractTestClient {
     protected void debugMessage(String message) {
         if (this.debug) {
             try {
-                System.out.println("#################### Latch: " + latch.getCount());
-                System.out.println(message);
-                System.out.println("####################");
+                logger.debug("Latch   : " + latch.getCount());
+                logger.debug("Message : " + message);
             } catch (Exception e) {
                 e.printStackTrace();
             }

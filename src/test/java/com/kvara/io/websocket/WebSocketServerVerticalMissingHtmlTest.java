@@ -22,7 +22,8 @@ class WebSocketServerVerticalMissingHtmlTest {
         @Override
         public Map<String, String> getConfigOverrides() {
             return Map.of(
-                    "com.kvara.io.websocket.server.htmlTemplatePath", "static/missing.html"
+                    "com.kvara.io.websocket.server.htmlTemplatePath", "static/missing.html",
+                    "quarkus.log.category.\"com.kvara.io.websocket.WebSocketIndexPageHandler\".level", "OFF"
             );
         }
     }
@@ -40,6 +41,6 @@ class WebSocketServerVerticalMissingHtmlTest {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
-        assertEquals("WebSocket HTML content was not loaded.", response.body());
+        assertEquals("WebSocket HTML content was missing.", response.body());
     }
 }

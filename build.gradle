@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
 
     implementation 'io.quarkus:quarkus-vertx'
     implementation 'io.quarkus:quarkus-spring-di'
@@ -18,7 +18,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-grpc'
     implementation 'org.apache.camel.quarkus:camel-quarkus-netty'
     implementation 'io.quarkus:quarkus-arc'
+
     testImplementation 'io.quarkus:quarkus-junit5'
+
 }
 
 group 'com.kvara'

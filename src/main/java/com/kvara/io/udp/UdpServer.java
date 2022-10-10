@@ -7,6 +7,8 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -15,6 +17,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 public class UdpServer {
+
+    private static final Logger logger = LoggerFactory.getLogger(UdpServer.class);
+
     private final ChannelHandler channelHandler;
     private final ExecutorService executor;
     final int port;
@@ -57,7 +62,7 @@ public class UdpServer {
                 int boundPort = getPort(channel);
                 maybePortConsumer.ifPresent(portCallback -> portCallback.accept(boundPort));
                 channel.closeFuture().await().addListener((closeResult) ->
-                        System.out.println("closing UDP server...")
+                        logger.info("closing UdpServer")
                 );
             } catch (Exception ex) {
                 maybeExceptionConsumer.ifPresent(exceptionConsumer -> exceptionConsumer.accept(ex));
@@ -65,7 +70,7 @@ public class UdpServer {
                 try {
                     group.shutdownGracefully();
                 } catch (Exception ex) {
-                    System.out.println("Error while shutting down the UDP server: " + ex.getMessage());
+                    logger.error("Error while shutting down the UDP server: " + ex.getMessage(), ex);
                 }
             }
         });

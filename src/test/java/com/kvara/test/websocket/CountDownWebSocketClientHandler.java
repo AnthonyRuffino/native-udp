@@ -7,13 +7,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -21,14 +20,16 @@ import java.util.function.Consumer;
 
 public class CountDownWebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
 
+    private static final Logger logger = LoggerFactory.getLogger(CountDownWebSocketClientHandler.class);
+
     private final WebSocketClientHandshaker handshaker;
     private ChannelPromise handshakeFuture;
 
     private final CountDownLatch latch;
-    private final Map<Long, AbstractTestClient.StatefulAssertion>  assertions;
+    private final Map<Long, AbstractTestClient.StatefulAssertion> assertions;
     private final Consumer<String> debug;
 
-    public CountDownWebSocketClientHandler(WebSocketClientHandshaker handshaker, CountDownLatch latch, Map assertions, Consumer<String> debug) {
+    public CountDownWebSocketClientHandler(WebSocketClientHandshaker handshaker, CountDownLatch latch, Map<Long, AbstractTestClient.StatefulAssertion> assertions, Consumer<String> debug) {
         this.handshaker = handshaker;
         this.latch = latch;
         this.assertions = assertions;
@@ -51,7 +52,7 @@ public class CountDownWebSocketClientHandler extends SimpleChannelInboundHandler
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        System.out.println("WebSocket Client disconnected!");
+        logger.debug("WebSocket Client disconnected!");
     }
 
     @Override
@@ -60,10 +61,10 @@ public class CountDownWebSocketClientHandler extends SimpleChannelInboundHandler
         if (!handshaker.isHandshakeComplete()) {
             try {
                 handshaker.finishHandshake(ch, (FullHttpResponse) msg);
-                System.out.println("WebSocket Client connected!");
+                logger.debug("WebSocket Client connected!");
                 handshakeFuture.setSuccess();
             } catch (WebSocketHandshakeException e) {
-                System.out.println("WebSocket Client failed to connect");
+                logger.error("WebSocket Client failed to connect", e);
                 handshakeFuture.setFailure(e);
             }
             return;
@@ -72,7 +73,7 @@ public class CountDownWebSocketClientHandler extends SimpleChannelInboundHandler
         if (msg instanceof FullHttpResponse) {
             FullHttpResponse response = (FullHttpResponse) msg;
             throw new IllegalStateException(
-                    "Unexpected FullHttpResponse (getStatus=" + response.getStatus() +
+                    "Unexpected FullHttpResponse (getStatus=" + response.status() +
                             ", content=" + response.content().toString(CharsetUtil.UTF_8) + ')');
         } else if (msg instanceof TextWebSocketFrame) {
             TextWebSocketFrame frame = (TextWebSocketFrame) msg;
