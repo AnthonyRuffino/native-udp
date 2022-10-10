@@ -1,6 +1,7 @@
 package com.kvara.udp;
 
 
+import com.kvara.AbstractTestClient;
 import com.kvara.HelloReply;
 import com.kvara.HelloRequest;
 import io.quarkus.test.junit.QuarkusTest;
@@ -55,7 +56,7 @@ class UdpServerVerticalTest {
     public void udpServerBootstrappedClientTest() throws InterruptedException {
 
 
-        List<UdpBootstrappedTestClient.Assertion> assertions = List.of(
+        List<AbstractTestClient.Assertion> assertions = List.of(
                 (response) -> {
                     var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
                     assertEquals("Hello Sarlomp", actualHelloReply.getMessage());
@@ -66,7 +67,7 @@ class UdpServerVerticalTest {
                 }
         );
 
-        UdpBootstrappedTestClient udpBootstrappedTestClient = getClient()
+        AbstractTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(
                         assertions
                 );
@@ -80,7 +81,7 @@ class UdpServerVerticalTest {
     @Test
     public void udpServerBootstrappedClientCallbackTest() throws InterruptedException {
 
-        List<UdpBootstrappedTestClient.Assertion> assertions = List.of(
+        List<AbstractTestClient.Assertion> assertions = List.of(
                 (response) -> {
                     var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
                     assertEquals("I'll call you back Sarlomp", actualHelloReply.getMessage());
@@ -91,9 +92,9 @@ class UdpServerVerticalTest {
                 }
         );
 
-        UdpBootstrappedTestClient udpBootstrappedTestClient = getClient()
+        AbstractTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(assertions);
-        udpBootstrappedTestClient.debug = false;
+        udpBootstrappedTestClient.setDebug(false);
 
         udpBootstrappedTestClient.sendMessage(getMessageBytes("callback", deliminator), 50);
         udpBootstrappedTestClient.checkAssertions(1000);
@@ -104,14 +105,14 @@ class UdpServerVerticalTest {
     public void brokenDeliminatorTest() throws InterruptedException {
 
 
-        List<UdpBootstrappedTestClient.Assertion> assertions = List.of(
+        List<AbstractTestClient.Assertion> assertions = List.of(
                 (response) -> {
                     var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
                     assertEquals("Unable to parse UDP message", actualHelloReply.getMessage());
                 }
         );
 
-        UdpBootstrappedTestClient udpBootstrappedTestClient = getClient()
+        AbstractTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(
                         assertions
                 );

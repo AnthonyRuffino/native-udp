@@ -18,7 +18,7 @@ class WebSocketServerVerticalTest {
     @Test
     public void webSocketSessionTest() throws Exception {
         int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
-        WebSocketClient.connect("localhost", port, "/websocket", false);
+        WebSocketBootstrappedTestClient.connect("localhost", port, "/websocket", false);
     }
 
     @Test

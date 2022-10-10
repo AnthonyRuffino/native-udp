@@ -37,7 +37,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import java.net.URI;
 
 
-public final class WebSocketClient {
+public final class WebSocketBootstrappedTestClient {
 
     public static void connect(String host, int port, String path, boolean ssl) throws Exception {
 
