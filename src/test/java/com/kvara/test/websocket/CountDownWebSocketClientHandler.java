@@ -1,5 +1,6 @@
 package com.kvara.test.websocket;
 
+import com.kvara.test.AbstractTestClient;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -14,13 +15,24 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.util.CharsetUtil;
 
-public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
+
+public class CountDownWebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
 
     private final WebSocketClientHandshaker handshaker;
     private ChannelPromise handshakeFuture;
 
-    public WebSocketClientHandler(WebSocketClientHandshaker handshaker) {
+    private final CountDownLatch latch;
+    private final Map<Long, AbstractTestClient.StatefulAssertion>  assertions;
+    private final Consumer<String> debug;
+
+    public CountDownWebSocketClientHandler(WebSocketClientHandshaker handshaker, CountDownLatch latch, Map assertions, Consumer<String> debug) {
         this.handshaker = handshaker;
+        this.latch = latch;
+        this.assertions = assertions;
+        this.debug = debug;
     }
 
     public ChannelFuture handshakeFuture() {
@@ -62,17 +74,16 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
             throw new IllegalStateException(
                     "Unexpected FullHttpResponse (getStatus=" + response.getStatus() +
                             ", content=" + response.content().toString(CharsetUtil.UTF_8) + ')');
-        }
-
-        WebSocketFrame frame = (WebSocketFrame) msg;
-        if (frame instanceof TextWebSocketFrame) {
-            TextWebSocketFrame textFrame = (TextWebSocketFrame) frame;
-            System.out.println("WebSocket Client received message: " + textFrame.text());
-        } else if (frame instanceof PongWebSocketFrame) {
-            System.out.println("WebSocket Client received pong");
-        } else if (frame instanceof CloseWebSocketFrame) {
-            System.out.println("WebSocket Client received closing");
-            ch.close();
+        } else if (msg instanceof TextWebSocketFrame) {
+            TextWebSocketFrame frame = (TextWebSocketFrame) msg;
+            debug.accept(frame.copy().toString());
+            AbstractTestClient.StatefulAssertion statefulAssertion = assertions.get(latch.getCount());
+            if (statefulAssertion != null) {
+                statefulAssertion.setResponse(frame.copy());
+                latch.countDown();
+            } else {
+                throw new RuntimeException("Unexpected message received!");
+            }
         }
     }
 

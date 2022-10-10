@@ -83,7 +83,10 @@ public final class WebSocketBootstrappedTestClient extends AbstractTestClient {
             final CountDownWebSocketClientHandler handler =
                     new CountDownWebSocketClientHandler(
                             WebSocketClientHandshakerFactory.newHandshaker(
-                                    uri, WebSocketVersion.V13, null, false, new DefaultHttpHeaders()));
+                                    uri, WebSocketVersion.V13, null, false, new DefaultHttpHeaders()),
+                            latch,
+                            assertions,
+                            this::debugMessage);
 
 
             Bootstrap b = new Bootstrap();
@@ -116,77 +119,6 @@ public final class WebSocketBootstrappedTestClient extends AbstractTestClient {
             this.channel = channelFuture.channel();
         } catch (URISyntaxException | SSLException | InterruptedException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    public final class CountDownWebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
-
-        private final WebSocketClientHandshaker handshaker;
-        private ChannelPromise handshakeFuture;
-
-        public CountDownWebSocketClientHandler(WebSocketClientHandshaker handshaker) {
-            this.handshaker = handshaker;
-        }
-
-        public ChannelFuture handshakeFuture() {
-            return handshakeFuture;
-        }
-
-        @Override
-        public void handlerAdded(ChannelHandlerContext ctx) {
-            handshakeFuture = ctx.newPromise();
-        }
-
-        @Override
-        public void channelActive(ChannelHandlerContext ctx) {
-            handshaker.handshake(ctx.channel());
-        }
-
-        @Override
-        public void channelInactive(ChannelHandlerContext ctx) {
-            System.out.println("WebSocket Client disconnected!");
-        }
-
-        @Override
-        public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-            Channel ch = ctx.channel();
-            if (!handshaker.isHandshakeComplete()) {
-                try {
-                    handshaker.finishHandshake(ch, (FullHttpResponse) msg);
-                    System.out.println("WebSocket Client connected!");
-                    handshakeFuture.setSuccess();
-                } catch (WebSocketHandshakeException e) {
-                    System.out.println("WebSocket Client failed to connect");
-                    handshakeFuture.setFailure(e);
-                }
-                return;
-            }
-
-            if (msg instanceof FullHttpResponse) {
-                FullHttpResponse response = (FullHttpResponse) msg;
-                throw new IllegalStateException(
-                        "Unexpected FullHttpResponse (getStatus=" + response.getStatus() +
-                                ", content=" + response.content().toString(CharsetUtil.UTF_8) + ')');
-            } else if (msg instanceof TextWebSocketFrame) {
-                TextWebSocketFrame frame = (TextWebSocketFrame) msg;
-                debugMessage(frame.copy().toString());
-                StatefulAssertion statefulAssertion = assertions.get(latch.getCount());
-                if (statefulAssertion != null) {
-                    statefulAssertion.setResponse(frame.copy());
-                    latch.countDown();
-                } else {
-                    throw new RuntimeException("Unexpected message received!");
-                }
-            }
-        }
-
-        @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            cause.printStackTrace();
-            if (!handshakeFuture.isDone()) {
-                handshakeFuture.setFailure(cause);
-            }
-            ctx.close();
         }
     }
 }
