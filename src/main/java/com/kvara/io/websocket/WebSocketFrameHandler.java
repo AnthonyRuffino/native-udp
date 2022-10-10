@@ -6,12 +6,13 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.shareddata.LocalMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
@@ -21,10 +22,19 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     private static final String DELIMINATOR = "|";
     private static final String TEXT_RESPONSE_PART_SESSION = "session" + DELIMINATOR;
 
-    private final Map<String, WebSocketSession> sessions = new HashMap<>();
+    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+    private final Vertx vertx;
+    private final LocalMap<String, WebSocketSession> sessionsShared;
+
+    public WebSocketFrameHandler(Vertx vertx) {
+        this.vertx = vertx;
+        this.sessionsShared = vertx.sharedData().getLocalMap("sessions");
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
+
+        LocalMap<String, WebSocketSession> sessionsShared = vertx.sharedData().getLocalMap("sessions");
 
         if (frame instanceof TextWebSocketFrame textFrame) {
             String textMessage = textFrame.text();
@@ -48,11 +58,17 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     }
 
     private void createSession(ChannelHandlerContext ctx) {
-        sessions.put(ctx.channel().id().asLongText(), new WebSocketSession(ctx, UUID.randomUUID().toString()));
+        String sessionId = getChannelId(ctx.channel());
+        sessionsShared.put(sessionId, new WebSocketSession(ctx));
+        sessions.put(sessionId, new WebSocketSession(ctx));
     }
 
     private void removeSession(ChannelHandlerContext ctx) {
-        sessions.remove(getChannelId(ctx.channel()));
+        String sessionId = getChannelId(ctx.channel());
+        synchronized (sessions) {
+            sessionsShared.remove(sessionId);
+            sessions.remove(sessionId);
+        }
     }
 
 

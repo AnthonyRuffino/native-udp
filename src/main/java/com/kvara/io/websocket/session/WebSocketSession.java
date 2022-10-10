@@ -1,21 +1,16 @@
 package com.kvara.io.websocket.session;
 
 import io.netty.channel.ChannelHandlerContext;
+import io.vertx.core.shareddata.Shareable;
 
-public class WebSocketSession {
+public class WebSocketSession implements Shareable {
     private final ChannelHandlerContext context;
-    private final String token;
 
-    public WebSocketSession(ChannelHandlerContext context, String token) {
+    public WebSocketSession(ChannelHandlerContext context) {
         this.context = context;
-        this.token = token;
     }
 
     public ChannelHandlerContext getContext() {
         return context;
-    }
-
-    public String getToken() {
-        return token;
     }
 }

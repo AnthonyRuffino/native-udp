@@ -2,6 +2,7 @@ package com.kvara.io.udp;
 
 import com.kvara.HelloReply;
 import com.kvara.io.ParsedMessage;
+import com.kvara.io.websocket.session.WebSocketSession;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -9,6 +10,7 @@ import io.netty.channel.socket.DatagramPacket;
 import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.eventbus.Message;
+import io.vertx.mutiny.core.shareddata.LocalMap;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -18,6 +20,8 @@ import java.util.function.Function;
 public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     private final Vertx vertx;
+
+    private final LocalMap<String, WebSocketSession> sessionsShared;
     private final Function<ByteBuffer, Optional<ParsedMessage>> messageParser;
     private ChannelHandlerContext ctx;
 
@@ -27,6 +31,7 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
     ) {
         this.vertx = vertx;
         this.messageParser = messageParser;
+        this.sessionsShared = vertx.sharedData().getLocalMap("sessions");
     }
 
     @Override
@@ -55,6 +60,16 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
 
     private void process(ParsedMessage parsedMessage, ChannelHandlerContext context, DatagramPacket packet) {
         InetSocketAddress sender = packet.sender();
+
+        if (!"guest".equals(parsedMessage.sessionId()) && !sessionsShared.containsKey(parsedMessage.sessionId())) {
+            HelloReply failedValidationReply = HelloReply.newBuilder()
+                    .setMessage("You did not send a valid session ID.")
+                    .setAdvice("Connect with WebSockets to and send a 'join' message to get a session id!")
+                    .build();
+            context.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(failedValidationReply.toByteArray()), sender));
+            return;
+        }
+
         forward(parsedMessage, sender)
                 .onItem()
                 .transform(message ->
@@ -69,7 +84,7 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
             CallbackThread t = new CallbackThread(ctx, sender, 100);
             t.start();
         }
-        return vertx.eventBus().request(parsedMessage.address(), parsedMessage.data());
+        return vertx.eventBus().request(parsedMessage.address(), parsedMessage);
     }
 
     @Override

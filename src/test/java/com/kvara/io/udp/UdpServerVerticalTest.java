@@ -2,19 +2,16 @@ package com.kvara.io.udp;
 
 
 import com.kvara.HelloReply;
-import com.kvara.HelloRequest;
 import com.kvara.test.AbstractTestClient;
 import com.kvara.test.udp.UdpBootstrappedTestClient;
 import io.netty.channel.socket.DatagramPacket;
 import io.quarkus.test.junit.QuarkusTest;
-import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.util.List;
 
+import static com.kvara.test.udp.UdpBootstrappedTestClient.getMessageBytes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
@@ -25,30 +22,12 @@ class UdpServerVerticalTest {
 
     @Test
     public void udpServerRawDatagramPacketTest() throws Exception {
+        HelloReply expectedHelloReply = HelloReply.newBuilder()
+                .setMessage("Hello Sarlomp")
+                .setAdvice("Take care!")
+                .build();
 
-        try (DatagramSocket socket = new DatagramSocket()) {
-
-            InetAddress host = InetAddress.getByName("localhost");
-
-            byte[] payload = getMessageBytes("hello", "sessionId", deliminator);
-
-            int port = UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
-            java.net.DatagramPacket packet
-                    = new java.net.DatagramPacket(payload, payload.length, host, port);
-            socket.send(packet);
-
-            HelloReply expectedHelloReply = HelloReply.newBuilder()
-                    .setMessage("Hello Sarlomp")
-                    .setAdvice("Take care!")
-                    .build();
-
-            byte[] receivedBytes = new byte[expectedHelloReply.toByteArray().length];
-            packet = new java.net.DatagramPacket(receivedBytes, receivedBytes.length);
-            socket.receive(packet);
-
-            HelloReply helloReply = HelloReply.parseFrom(packet.getData());
-            assertEquals(expectedHelloReply, helloReply);
-        }
+        UdpBootstrappedTestClient.assertHelloMessage(expectedHelloReply, "guest", deliminator);
     }
 
     @Test
@@ -72,9 +51,9 @@ class UdpServerVerticalTest {
                 .withAssertions(
                         assertions
                 );
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", "helloSessionId", deliminator), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", deliminator), 50);
         Thread.sleep(50);
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("goodbye", "goodbyeSessionId", deliminator), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("goodbye", deliminator), 50);
         udpBootstrappedTestClient.checkAssertions(50);
     }
 
@@ -97,7 +76,7 @@ class UdpServerVerticalTest {
         AbstractTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(assertions);
 
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("callback", "callbackSessionId", deliminator), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("callback", deliminator), 50);
         udpBootstrappedTestClient.checkAssertions(1000);
     }
 
@@ -119,7 +98,7 @@ class UdpServerVerticalTest {
                         assertions
                 );
 
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", "helloSessionId", '$'), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", '$'), 50);
         udpBootstrappedTestClient.checkAssertions(50);
     }
 
@@ -131,12 +110,5 @@ class UdpServerVerticalTest {
         );
         client.startup();
         return client;
-    }
-
-    private byte[] getMessageBytes(String address, String sessionId, Character deliminator) {
-        return ArrayUtils.addAll(
-                (address + deliminator + sessionId + deliminator).getBytes(),
-                HelloRequest.newBuilder().setName("Sarlomp").build().toByteArray()
-        );
     }
 }

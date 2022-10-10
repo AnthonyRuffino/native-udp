@@ -14,8 +14,8 @@ public class HelloVerticle {
     public static final String MESSAGE_VULCAN_ADVICE = "Live long and prosper!";
 
     @ConsumeEvent("hello")
-    public byte[] hello(byte[] message) throws InvalidProtocolBufferException {
-        HelloRequest helloRequest = HelloRequest.parseFrom(message);
+    public byte[] hello(ParsedMessage message) throws InvalidProtocolBufferException {
+        HelloRequest helloRequest = HelloRequest.parseFrom(message.data());
 
 
         HelloReply helloReply = HelloReply.newBuilder()
@@ -27,8 +27,8 @@ public class HelloVerticle {
     }
 
     @ConsumeEvent("goodbye")
-    public byte[] goodbye(byte[] message) throws InvalidProtocolBufferException {
-        HelloRequest helloRequest = HelloRequest.parseFrom(message);
+    public byte[] goodbye(ParsedMessage message) throws InvalidProtocolBufferException {
+        HelloRequest helloRequest = HelloRequest.parseFrom(message.data());
 
         HelloReply helloReply = HelloReply.newBuilder()
                 .setMessage("Goodbye " + helloRequest.getName())
@@ -39,8 +39,8 @@ public class HelloVerticle {
     }
 
     @ConsumeEvent("callback")
-    public byte[] callback(byte[] message) throws InvalidProtocolBufferException {
-        HelloRequest helloRequest = HelloRequest.parseFrom(message);
+    public byte[] callback(ParsedMessage message) throws InvalidProtocolBufferException {
+        HelloRequest helloRequest = HelloRequest.parseFrom(message.data());
 
         HelloReply helloReply = HelloReply.newBuilder()
                 .setMessage("I'll call you back " + helloRequest.getName())

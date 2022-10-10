@@ -82,10 +82,9 @@ public abstract class AbstractTestClient {
         return this;
     }
 
-    public AbstractTestClient withAssertion(Assertion assertion) {
-        return withAssertions(List.of(assertion));
+    public Map<Long, StatefulAssertion> getAssertions() {
+        return assertions;
     }
-
 
     public void checkAssertions(int completionTimeout) {
         try {

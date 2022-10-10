@@ -7,6 +7,7 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.ssl.SslContext;
+import io.vertx.mutiny.core.Vertx;
 
 public class WebSocketServerInitializer extends ChannelInitializer<SocketChannel> {
 
@@ -14,10 +15,12 @@ public class WebSocketServerInitializer extends ChannelInitializer<SocketChannel
 
     private final SslContext sslCtx;
     private String htmlTemplatePath;
+    private final Vertx vertx;
 
-    public WebSocketServerInitializer(SslContext sslCtx, String htmlTemplatePath) {
+    public WebSocketServerInitializer(SslContext sslCtx, String htmlTemplatePath, Vertx vertx) {
         this.sslCtx = sslCtx;
         this.htmlTemplatePath = htmlTemplatePath;
+        this.vertx = vertx;
     }
 
     @Override
@@ -30,6 +33,6 @@ public class WebSocketServerInitializer extends ChannelInitializer<SocketChannel
         pipeline.addLast(new HttpObjectAggregator(65536));
         pipeline.addLast(new WebSocketServerProtocolHandler(WEBSOCKET_PATH, null, true));
         pipeline.addLast(new WebSocketIndexPageHandler(WEBSOCKET_PATH, htmlTemplatePath));
-        pipeline.addLast(new WebSocketFrameHandler());
+        pipeline.addLast(new WebSocketFrameHandler(vertx));
     }
 }

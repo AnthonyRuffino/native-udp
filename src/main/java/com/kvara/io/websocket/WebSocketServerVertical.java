@@ -31,7 +31,7 @@ public class WebSocketServerVertical extends AbstractVerticle {
     @Value("${com.kvara.io.websocket.server.htmlTemplatePath}")
     String htmlTemplatePath;
 
-    static Map<String, Integer> BOUND_PORTS = new HashMap<>();
+    public static Map<String, Integer> BOUND_PORTS = new HashMap<>();
 
     @Autowired
     @Qualifier("messageParser")
@@ -46,7 +46,7 @@ public class WebSocketServerVertical extends AbstractVerticle {
         logger.info("starting WebSocketsServerVertical");
 
         WebSocketServer websocketServer = new WebSocketServer(
-                new WebSocketServerInitializer(null, htmlTemplatePath),
+                new WebSocketServerInitializer(null, htmlTemplatePath, vertx),
                 Executors.newFixedThreadPool(1),
                 port
         );

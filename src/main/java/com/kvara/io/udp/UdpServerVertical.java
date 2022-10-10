@@ -28,7 +28,7 @@ public class UdpServerVertical extends AbstractVerticle {
     @Value("${com.kvara.io.udp.server.port}")
     int port;
 
-    static Map<String, Integer> BOUND_PORTS = new HashMap<>();
+    public static Map<String, Integer> BOUND_PORTS = new HashMap<>();
 
     @Autowired
     @Qualifier("messageParser")
