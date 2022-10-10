@@ -55,7 +55,7 @@ class UdpServerVerticalTest {
     public void udpServerBootstrappedClientTest() throws InterruptedException {
 
 
-        List<BootstrappedTestClient.Assertion> assertions = List.of(
+        List<UdpBootstrappedTestClient.Assertion> assertions = List.of(
                 (response) -> {
                     var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
                     assertEquals("Hello Sarlomp", actualHelloReply.getMessage());
@@ -66,21 +66,21 @@ class UdpServerVerticalTest {
                 }
         );
 
-        BootstrappedTestClient bootstrappedTestClient = getClient()
+        UdpBootstrappedTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(
                         assertions
                 );
 
-        bootstrappedTestClient.sendMessage(getMessageBytes("hello", deliminator), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", deliminator), 50);
         Thread.sleep(50);
-        bootstrappedTestClient.sendMessage(getMessageBytes("goodbye", deliminator), 50);
-        bootstrappedTestClient.checkAssertions(50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("goodbye", deliminator), 50);
+        udpBootstrappedTestClient.checkAssertions(50);
     }
 
     @Test
     public void udpServerBootstrappedClientCallbackTest() throws InterruptedException {
 
-        List<BootstrappedTestClient.Assertion> assertions = List.of(
+        List<UdpBootstrappedTestClient.Assertion> assertions = List.of(
                 (response) -> {
                     var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
                     assertEquals("I'll call you back Sarlomp", actualHelloReply.getMessage());
@@ -91,12 +91,12 @@ class UdpServerVerticalTest {
                 }
         );
 
-        BootstrappedTestClient bootstrappedTestClient = getClient()
+        UdpBootstrappedTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(assertions);
-        bootstrappedTestClient.debug = false;
+        udpBootstrappedTestClient.debug = false;
 
-        bootstrappedTestClient.sendMessage(getMessageBytes("callback", deliminator), 50);
-        bootstrappedTestClient.checkAssertions(1000);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("callback", deliminator), 50);
+        udpBootstrappedTestClient.checkAssertions(1000);
     }
 
 
@@ -104,24 +104,24 @@ class UdpServerVerticalTest {
     public void brokenDeliminatorTest() throws InterruptedException {
 
 
-        List<BootstrappedTestClient.Assertion> assertions = List.of(
+        List<UdpBootstrappedTestClient.Assertion> assertions = List.of(
                 (response) -> {
                     var actualHelloReply = HelloReply.parseFrom(response.content().nioBuffer());
                     assertEquals("Unable to parse UDP message", actualHelloReply.getMessage());
                 }
         );
 
-        BootstrappedTestClient bootstrappedTestClient = getClient()
+        UdpBootstrappedTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(
                         assertions
                 );
 
-        bootstrappedTestClient.sendMessage(getMessageBytes("hello", '$'), 50);
-        bootstrappedTestClient.checkAssertions(50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", '$'), 50);
+        udpBootstrappedTestClient.checkAssertions(50);
     }
 
-    private static BootstrappedTestClient getClient() {
-        return new BootstrappedTestClient(
+    private static UdpBootstrappedTestClient getClient() {
+        return new UdpBootstrappedTestClient(
                 "localhost",
                 UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
                 50

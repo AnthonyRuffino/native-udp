@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class BootstrappedTestClient {
+public class UdpBootstrappedTestClient {
     private final String host;
     private final int port;
     private CountDownLatch latch;
@@ -45,13 +45,13 @@ public class BootstrappedTestClient {
      *
      * @param port {@link Integer} port of server
      */
-    public BootstrappedTestClient(String host, int port, int connectTimeout) {
+    public UdpBootstrappedTestClient(String host, int port, int connectTimeout) {
         this.host = host;
         this.port = port;
         this.channel = startup(connectTimeout);
     }
 
-    public BootstrappedTestClient withAssertions(List<Assertion> assertionsList) {
+    public UdpBootstrappedTestClient withAssertions(List<Assertion> assertionsList) {
         int numberOfAssertions = assertionsList.size();
         this.assertions.clear();
         this.latch = new CountDownLatch(numberOfAssertions);
@@ -68,7 +68,7 @@ public class BootstrappedTestClient {
         return this;
     }
 
-    public BootstrappedTestClient withAssertion(Assertion assertion) {
+    public UdpBootstrappedTestClient withAssertion(Assertion assertion) {
         return withAssertions(List.of(assertion));
     }
 
