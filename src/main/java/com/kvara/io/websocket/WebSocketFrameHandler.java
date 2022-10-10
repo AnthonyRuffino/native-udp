@@ -1,5 +1,6 @@
 package com.kvara.io.websocket;
 
+import com.kvara.io.websocket.session.WebSocketSession;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -9,35 +10,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
     private static final Logger logger = LoggerFactory.getLogger(WebSocketFrameHandler.class);
-    private static final Map<String, ChannelHandlerContext> SESSIONS = new HashMap<>();
+    private static final Map<String, WebSocketSession> SESSIONS = new HashMap<>();
     private static final String TEXT_COMMAND_JOIN = "join";
+
+    private static final String DELIMINATOR = "|";
+    private static final String TEXT_RESPONSE_PART_SESSION = "session" + DELIMINATOR;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
 
         if (frame instanceof TextWebSocketFrame) {
-            String request = ((TextWebSocketFrame) frame).text();
-            logger.debug("{} received {}", ctx.channel(), request);
+            String textMessage = ((TextWebSocketFrame) frame).text();
+            logger.debug("{} received {}", ctx.channel(), textMessage);
 
             String sessionId = getChannelId(ctx.channel());
             String sessionShortId = getChannelShortId(ctx.channel());
-            if (TEXT_COMMAND_JOIN.equals(request)) {
-                SESSIONS.put(ctx.channel().id().asLongText(), ctx);
+            if (TEXT_COMMAND_JOIN.equals(textMessage)) {
+                SESSIONS.put(ctx.channel().id().asLongText(), new WebSocketSession(ctx, UUID.randomUUID().toString()));
+                ctx.channel().writeAndFlush(new TextWebSocketFrame(TEXT_RESPONSE_PART_SESSION + sessionId));
+            } else {
+                SESSIONS.forEach((key, value) -> {
+                    String prefix = key.equals(sessionId) ? "" : (sessionShortId + ": ");
+                    value.getContext().writeAndFlush(new TextWebSocketFrame(prefix + textMessage));
+                });
             }
-
-            SESSIONS.forEach((key, value) -> {
-                if (!key.equals(sessionId)) {
-                    value.writeAndFlush(new TextWebSocketFrame(sessionShortId + ": " + request));
-                }
-            });
-
-            ctx.channel().writeAndFlush(new TextWebSocketFrame(request.toUpperCase(Locale.US)));
         } else {
             String message = "unsupported frame type: " + frame.getClass().getName();
             throw new UnsupportedOperationException(message);

@@ -22,7 +22,7 @@ public abstract class AbstractTestClient {
     protected final String host;
     protected final int port;
     protected final int connectTimeout;
-    protected CountDownLatch latch;
+    public CountDownLatch latch;
     protected Channel channel;
     protected EventLoopGroup workGroup = new NioEventLoopGroup();
 

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class WebSocketServerVerticalTest {
@@ -22,7 +23,11 @@ class WebSocketServerVerticalTest {
         List<AbstractTestClient.Assertion> assertions = List.of(
                 (response) -> {
                     TextWebSocketFrame textFrame = (TextWebSocketFrame) response;
-                    assertEquals("TEST", textFrame.text());
+                    assertTrue(textFrame.text().startsWith("session|"));
+                },
+                (response) -> {
+                    TextWebSocketFrame textFrame = (TextWebSocketFrame) response;
+                    assertEquals("test", textFrame.text());
                 }
         );
 
@@ -33,8 +38,8 @@ class WebSocketServerVerticalTest {
         client.setDebug(false);
         client.startup();
 
-        WebSocketFrame frame = new TextWebSocketFrame("test");
-        client.sendMessage(frame, 50);
+        client.sendMessage(new TextWebSocketFrame("join"), 50);
+        client.sendMessage(new TextWebSocketFrame("test"), 50);
         client.checkAssertions(50);
 
     }
@@ -46,7 +51,7 @@ class WebSocketServerVerticalTest {
         List<AbstractTestClient.Assertion> assertions = List.of(
                 (response) -> {
                     TextWebSocketFrame textFrame = (TextWebSocketFrame) response;
-                    assertEquals("JOIN", textFrame.text());
+                    assertTrue(textFrame.text().startsWith("session|"));
                 }
         );
 
