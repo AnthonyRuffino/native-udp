@@ -30,9 +30,7 @@ class UdpServerVerticalTest {
 
             InetAddress host = InetAddress.getByName("localhost");
 
-            byte[] eventBusAddress = ("hello" + deliminator).getBytes();
-            byte[] helloRequest = HelloRequest.newBuilder().setName("Sarlomp").build().toByteArray();
-            byte[] payload = ArrayUtils.addAll(eventBusAddress, helloRequest);
+            byte[] payload = getMessageBytes("hello", "sessionId", deliminator);
 
             int port = UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
             java.net.DatagramPacket packet
@@ -74,9 +72,9 @@ class UdpServerVerticalTest {
                 .withAssertions(
                         assertions
                 );
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", deliminator), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", "helloSessionId", deliminator), 50);
         Thread.sleep(50);
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("goodbye", deliminator), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("goodbye", "goodbyeSessionId", deliminator), 50);
         udpBootstrappedTestClient.checkAssertions(50);
     }
 
@@ -99,7 +97,7 @@ class UdpServerVerticalTest {
         AbstractTestClient udpBootstrappedTestClient = getClient()
                 .withAssertions(assertions);
 
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("callback", deliminator), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("callback", "callbackSessionId", deliminator), 50);
         udpBootstrappedTestClient.checkAssertions(1000);
     }
 
@@ -121,7 +119,7 @@ class UdpServerVerticalTest {
                         assertions
                 );
 
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", '$'), 50);
+        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", "helloSessionId", '$'), 50);
         udpBootstrappedTestClient.checkAssertions(50);
     }
 
@@ -135,9 +133,9 @@ class UdpServerVerticalTest {
         return client;
     }
 
-    private byte[] getMessageBytes(String prefix, Character deliminator) {
+    private byte[] getMessageBytes(String address, String sessionId, Character deliminator) {
         return ArrayUtils.addAll(
-                (prefix + deliminator).getBytes(),
+                (address + deliminator + sessionId + deliminator).getBytes(),
                 HelloRequest.newBuilder().setName("Sarlomp").build().toByteArray()
         );
     }

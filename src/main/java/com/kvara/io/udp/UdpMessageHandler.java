@@ -61,9 +61,7 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
                         new DatagramPacket(Unpooled.copiedBuffer(message.body()), sender)
                 )
                 .subscribe()
-                .with(datagramPacket -> {
-                    context.writeAndFlush(datagramPacket);
-                });
+                .with(context::writeAndFlush);
     }
 
     private Uni<Message<byte[]>> forward(ParsedMessage parsedMessage, InetSocketAddress sender) {

@@ -16,11 +16,12 @@ import java.util.UUID;
 public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
     private static final Logger logger = LoggerFactory.getLogger(WebSocketFrameHandler.class);
-    private static final Map<String, WebSocketSession> SESSIONS = new HashMap<>();
     private static final String TEXT_COMMAND_JOIN = "join";
 
     private static final String DELIMINATOR = "|";
     private static final String TEXT_RESPONSE_PART_SESSION = "session" + DELIMINATOR;
+
+    private final Map<String, WebSocketSession> sessions = new HashMap<>();
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
@@ -32,10 +33,10 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
             String sessionId = getChannelId(ctx.channel());
             String sessionShortId = getChannelShortId(ctx.channel());
             if (TEXT_COMMAND_JOIN.equals(textMessage)) {
-                SESSIONS.put(ctx.channel().id().asLongText(), new WebSocketSession(ctx, UUID.randomUUID().toString()));
+                createSession(ctx);
                 ctx.channel().writeAndFlush(new TextWebSocketFrame(TEXT_RESPONSE_PART_SESSION + sessionId));
             } else {
-                SESSIONS.forEach((key, value) -> {
+                sessions.forEach((key, value) -> {
                     String prefix = key.equals(sessionId) ? "" : (sessionShortId + ": ");
                     value.getContext().writeAndFlush(new TextWebSocketFrame(prefix + textMessage));
                 });
@@ -44,6 +45,14 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
             String message = "unsupported frame type: " + frame.getClass().getName();
             throw new UnsupportedOperationException(message);
         }
+    }
+
+    private void createSession(ChannelHandlerContext ctx) {
+        sessions.put(ctx.channel().id().asLongText(), new WebSocketSession(ctx, UUID.randomUUID().toString()));
+    }
+
+    private void removeSession(ChannelHandlerContext ctx) {
+        sessions.remove(getChannelId(ctx.channel()));
     }
 
 
@@ -65,7 +74,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
         super.channelUnregistered(ctx);
-        SESSIONS.remove(getChannelId(ctx.channel()));
+        removeSession(ctx);
     }
 
     @Override

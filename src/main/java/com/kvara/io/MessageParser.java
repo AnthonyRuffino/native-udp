@@ -25,9 +25,11 @@ public class MessageParser implements Function<ByteBuffer, Optional<ParsedMessag
         var capacity = content.capacity();
         content.position(0);
 
-        return getAddress(content, capacity)
-                .map(address ->
-                        new ParsedMessage(address, getData(content, capacity))
+        return getPart(content, capacity)
+                .flatMap(address ->
+                        getPart(content, capacity).map(sessionId ->
+                                new ParsedMessage(address, sessionId, getData(content, capacity))
+                        )
                 );
     }
 
@@ -39,7 +41,7 @@ public class MessageParser implements Function<ByteBuffer, Optional<ParsedMessag
         return ArrayUtils.toPrimitive(remainingBytes.toArray(new Byte[0]));
     }
 
-    private Optional<String> getAddress(ByteBuffer content, int capacity) {
+    private Optional<String> getPart(ByteBuffer content, int capacity) {
         StringBuilder addressBuilder = new StringBuilder();
         boolean delimiterFound = false;
         while (content.position() < capacity) {
