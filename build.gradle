@@ -7,7 +7,7 @@ println "Starting gradle build."
 
 def githubToken = ({
     if (project.hasProperty("GITHUB_TOKEN")) {
-        println "Using Github token from project properties"
+        println "Using Github token from project properties: " + project.getProperty("GITHUB_TOKEN")
         return project.getProperty("GITHUB_TOKEN")
     } else if("$System.env.GH_PACKAGES_PAT" != "null"){
         println "Using packages access token from environment variables"
