@@ -9,9 +9,9 @@ def githubToken = ({
     if (project.hasProperty("GITHUB_TOKEN")) {
         println "Using Github token from project properties"
         return project.getProperty("GITHUB_TOKEN")
-    } else if("$System.env.GH_PACKAGES_ACCESS_TOKEN" != "null"){
+    } else if("$System.env.GH_PACKAGES_PAT" != "null"){
         println "Using packages access token from environment variables"
-        return "$System.env.GH_PACKAGES_ACCESS_TOKEN"
+        return "$System.env.GH_PACKAGES_PAT"
     } else if("$System.env.GITHUB_TOKEN" != "null"){
         println "Using Github token from environment variables"
         return "$System.env.GITHUB_TOKEN"
