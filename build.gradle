@@ -6,12 +6,12 @@ plugins {
 println "Starting gradle build."
 
 def githubToken = ({
-    if (project.hasProperty("GITHUB_TOKEN")) {
+    if("$System.env.GH_PACKAGES_PAT" != "null"){
+        println "Using PAT from environment variables"
+        return "$System.env.GH_PACKAGES_PAT"
+    } else if (project.hasProperty("GITHUB_TOKEN")) {
         println "Using Github token from project properties: " + project.getProperty("GITHUB_TOKEN")
         return project.getProperty("GITHUB_TOKEN")
-    } else if("$System.env.GH_PACKAGES_PAT" != "null"){
-        println "Using packages access token from environment variables"
-        return "$System.env.GH_PACKAGES_PAT"
     } else if("$System.env.GITHUB_TOKEN" != "null"){
         println "Using Github token from environment variables"
         return "$System.env.GITHUB_TOKEN"
