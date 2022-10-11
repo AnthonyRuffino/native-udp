@@ -3,6 +3,7 @@ package com.kvara.io.udp;
 import com.kvara.io.ParsedMessage;
 import io.smallrye.mutiny.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.worldy.sockiopath.udp.UdpServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @ApplicationScoped
@@ -48,16 +51,12 @@ public class UdpServerVertical extends AbstractVerticle {
                 port
         );
 
-        udpServer
-                .withPortConsumer(port -> {
-                    logger.info("bound UDP port -> %s".formatted(port));
-                    BOUND_PORTS.put(this.id, port);
-                    startPromise.tryComplete();
-                })
-                .withExceptionConsumer(ex -> {
-                    ex.printStackTrace();
-                    udpServer.startUdpServer();
-                })
-                .startUdpServer();
+        try {
+            int port = udpServer.start().orTimeout(1000, TimeUnit.MILLISECONDS).get().port();
+            BOUND_PORTS.put(id, port);
+            startPromise.complete();
+        } catch (InterruptedException | ExecutionException e) {
+            startPromise.fail(e.getCause());
+        }
     }
 }

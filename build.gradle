@@ -3,9 +3,39 @@ plugins {
     id 'io.quarkus'
 }
 
+println "Starting gradle build."
+
+def githubToken = ({
+    if (project.hasProperty("GITHUB_TOKEN")) {
+        println "Using Github token from project properties"
+        return project.getProperty("GITHUB_TOKEN")
+    } else if("$System.env.GITHUB_TOKEN" != "null"){
+        println "Using Github token from environment variables"
+        return "$System.env.GITHUB_TOKEN"
+    } else {
+        //This block is required for building from IntelliJ because IntelliJ does not load environment variables
+        println "Trying to get Github token from ~/.m2/settings.xml"
+        def settingsFile = new File(System.getProperty( "user.home" ), ".m2/settings.xml")
+        def settings = new XmlSlurper().parse(settingsFile)
+        for (entry in settings."servers"."server") {
+            if ( entry."id".text() == "github" ) {
+                return entry.password.text()
+            }
+        }
+    }
+})()
+
 repositories {
     mavenCentral()
     mavenLocal()
+
+    maven {
+        credentials {
+            username ""
+            password githubToken
+        }
+        url "https://maven.pkg.github.com/worldy-io/sockiopath"
+    }
 }
 
 dependencies {
@@ -18,6 +48,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-grpc'
     implementation 'org.apache.camel.quarkus:camel-quarkus-netty'
     implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.worldy:sockiopath:0.0.1'
 
     testImplementation 'io.quarkus:quarkus-junit5'
 
