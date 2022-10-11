@@ -19,4 +19,4 @@ jobs:
         with:
           java-version: 17
       - name: Build
-        run: ./gradlew build -PGITHUB_TOKEN=$GH_PACKAGES_PAT
+        run: ./gradlew build -PGITHUB_TOKEN=$env.GH_PACKAGES_PAT
