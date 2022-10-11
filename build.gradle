@@ -6,18 +6,15 @@ plugins {
 println "Starting gradle build."
 
 def githubToken = ({
-    if("$System.env.GH_PACKAGES_PAT" != "null"){
-        println "Using PAT from environment variables"
-        return "$System.env.GH_PACKAGES_PAT"
-    } else if (project.hasProperty("GITHUB_TOKEN")) {
-        println "Using Github token from project properties: " + project.getProperty("GITHUB_TOKEN")
+    if (project.hasProperty("GITHUB_TOKEN")) {
+        println "Using Github token from project properties..."
         return project.getProperty("GITHUB_TOKEN")
     } else if("$System.env.GITHUB_TOKEN" != "null"){
-        println "Using Github token from environment variables"
+        println "Using Github token from environment variables..."
         return "$System.env.GITHUB_TOKEN"
     } else {
         //This block is required for building from IntelliJ because IntelliJ does not load environment variables
-        println "Trying to get Github token from ~/.m2/settings.xml"
+        println "Trying to get Github token from ~/.m2/settings.xml ..."
         def settingsFile = new File(System.getProperty( "user.home" ), ".m2/settings.xml")
         def settings = new XmlSlurper().parse(settingsFile)
         for (entry in settings."servers"."server") {
