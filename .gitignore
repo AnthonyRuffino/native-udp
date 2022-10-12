@@ -2,6 +2,8 @@
 .gradle/
 build/
 
+cache-clear-local.sh
+
 # Eclipse
 .project
 .classpath
