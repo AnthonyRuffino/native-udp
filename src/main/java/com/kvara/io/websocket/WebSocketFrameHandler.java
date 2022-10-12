@@ -31,7 +31,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Object frame) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, Object frame) {
 
         if (frame instanceof TextWebSocketFrame textFrame) {
             String textMessage = textFrame.text();

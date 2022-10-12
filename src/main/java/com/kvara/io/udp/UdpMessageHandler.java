@@ -11,6 +11,8 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.eventbus.Message;
 import io.vertx.mutiny.core.shareddata.LocalMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -18,6 +20,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacket> {
+
+    private static final Logger logger = LoggerFactory.getLogger(UdpMessageHandler.class);
 
     private final Vertx vertx;
 
@@ -94,7 +98,7 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        cause.printStackTrace();
+        logger.error("Error handling Udp connection: " + cause.getMessage(), cause);
         // We don't close the channel because we can keep serving requests.
     }
 }

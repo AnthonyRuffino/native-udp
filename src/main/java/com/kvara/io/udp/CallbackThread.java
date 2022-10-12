@@ -4,11 +4,15 @@ import com.kvara.HelloReply;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 
 public class CallbackThread extends Thread {
+
+    private static final Logger logger = LoggerFactory.getLogger(CallbackThread.class);
 
     private final ChannelHandlerContext channelHandlerContext;
     private final InetSocketAddress recipient;
@@ -22,6 +26,10 @@ public class CallbackThread extends Thread {
     }
 
     public void run() {
+        sendCallback();
+    }
+
+    void sendCallback() {
         try (DatagramSocket datagramSocket = new DatagramSocket()) {
             Thread.sleep(delay);
 
@@ -38,7 +46,7 @@ public class CallbackThread extends Thread {
             datagramSocket.send(sendPacket);
             channelHandlerContext.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(bytes), recipient));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.error("Error handling Udp connection during callback: " + e.getMessage(), e);
         }
     }
 }

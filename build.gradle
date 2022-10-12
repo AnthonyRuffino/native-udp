@@ -56,6 +56,8 @@ dependencies {
 
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'org.hamcrest:java-hamcrest:2.0.0.0'
+    testImplementation 'io.quarkus:quarkus-junit5-mockito:2.13.1.Final'
+
 
 }
 
@@ -135,7 +137,7 @@ jacocoTestCoverageVerification {
             limit {
                 counter = 'LINE'
                 value = 'COVEREDRATIO'
-                minimum = 0.90
+                minimum = 1.0
             }
         }
         rule {
@@ -144,7 +146,7 @@ jacocoTestCoverageVerification {
             limit {
                 counter = 'BRANCH'
                 value = 'COVEREDRATIO'
-                minimum = 0.80
+                minimum = 0.9
             }
         }
     }

@@ -96,7 +96,7 @@ public class WebSocketIndexPageHandler extends SimpleChannelInboundHandler<FullH
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        cause.printStackTrace();
+        logger.error("Error serving WebSocketHtml: " + cause.getMessage(), cause);
         ctx.close();
     }
 
@@ -114,7 +114,7 @@ public class WebSocketIndexPageHandler extends SimpleChannelInboundHandler<FullH
         }
     }
 
-    private static String getWebSocketLocation(ChannelPipeline cp, HttpRequest req, String path) {
+    static String getWebSocketLocation(ChannelPipeline cp, HttpRequest req, String path) {
         String protocol = "ws";
         if (cp.get(SslHandler.class) != null) {
             protocol = "wss";
