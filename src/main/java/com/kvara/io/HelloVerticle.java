@@ -49,5 +49,4 @@ public class HelloVerticle {
 
         return helloReply.toByteArray();
     }
-
 }

@@ -84,4 +84,5 @@ tasks.withType(Checkstyle) {
         xml.required = false
         html.required = true
     }
+    dependsOn(tasks.compileQuarkusTestGeneratedSourcesJava)
 }
