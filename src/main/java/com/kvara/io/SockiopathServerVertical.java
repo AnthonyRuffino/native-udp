@@ -3,10 +3,12 @@ package com.kvara.io;
 import io.smallrye.mutiny.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.worldy.sockiopath.SockiopathServer;
+import io.worldy.sockiopath.StartServerResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +29,8 @@ public abstract class SockiopathServerVertical extends AbstractVerticle {
         logger.info("starting SockiopathServerVertical: " + this.getClass().getTypeName());
 
         try {
-            actualPort = sockiopathServer().start().orTimeout(getStartTimeoutMillis(), TimeUnit.MILLISECONDS).get().port();
+            CompletableFuture<StartServerResult> startFuture = sockiopathServer().start().orTimeout(getStartTimeoutMillis(), TimeUnit.MILLISECONDS);
+            actualPort = startFuture.get().port();
             startPromise.complete();
         } catch (InterruptedException | ExecutionException e) {
             startPromise.fail(e.getCause());

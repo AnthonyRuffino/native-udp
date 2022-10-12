@@ -55,6 +55,7 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-test-vertx:2.8.3.Final'
 
     testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'org.hamcrest:java-hamcrest:2.0.0.0'
 
 }
 
