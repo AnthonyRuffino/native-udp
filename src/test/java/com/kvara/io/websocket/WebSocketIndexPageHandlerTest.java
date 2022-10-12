@@ -10,6 +10,7 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
@@ -24,12 +25,19 @@ class WebSocketIndexPageHandlerTest {
 
     @Test
     void channelRead0() throws Exception {
+        testChannelRead0(new HeadersMultiMap());
+    }
 
+    @Test
+    void channelRead0IsNotKeepAlive() throws Exception {
+        testChannelRead0(HeadersMultiMap.headers().add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE));
+    }
+
+    void testChannelRead0(HttpHeaders headers) throws Exception {
         FullHttpRequest req = Mockito.mock(FullHttpRequest.class);
         DecoderResult decoderResult = Mockito.mock(DecoderResult.class);
         Mockito.when(decoderResult.isSuccess()).thenReturn(false);
         Mockito.when(req.decoderResult()).thenReturn(decoderResult);
-        HttpHeaders headers = new HeadersMultiMap();
         Mockito.when(req.headers()).thenReturn(headers);
         Mockito.when(req.protocolVersion()).thenReturn(HttpVersion.HTTP_1_1);
 
@@ -40,7 +48,8 @@ class WebSocketIndexPageHandlerTest {
         ChannelFuture writeFuture = Mockito.mock(ChannelFuture.class);
         Mockito.when(channel.writeAndFlush(org.mockito.Mockito.isA(FullHttpResponse.class))).thenReturn(writeFuture);
 
-        new WebSocketIndexPageHandler("", "").channelRead0(ctx, req);
+        new WebSocketIndexPageHandler("", "")
+                .channelRead0(ctx, req);
 
         Mockito.verify(writeFuture, Mockito.atLeastOnce()).addListener(ChannelFutureListener.CLOSE);
         Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.isA(DefaultFullHttpResponse.class));

@@ -5,13 +5,10 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.vertx.core.shareddata.LocalMap;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.core.shareddata.LocalMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class WebSocketFrameHandler extends SimpleChannelInboundHandler<Object> {
 
@@ -20,14 +17,12 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<Object> {
 
     private static final String DELIMINATOR = "|";
     private static final String TEXT_RESPONSE_PART_SESSION = "session" + DELIMINATOR;
-
-    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final Vertx vertx;
     private final LocalMap<String, WebSocketSession> sessionsShared;
 
     public WebSocketFrameHandler(Vertx vertx) {
         this.vertx = vertx;
-        this.sessionsShared = vertx.sharedData().getLocalMap("sessions");
+        this.sessionsShared = this.vertx.getDelegate().sharedData().getLocalMap("sessions");
     }
 
     @Override
@@ -36,6 +31,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<Object> {
         if (frame instanceof TextWebSocketFrame textFrame) {
             String textMessage = textFrame.text();
             logger.debug("{} received {}", ctx.channel(), textMessage);
+            logger.debug("sessions {}", sessionsShared.size());
 
             String sessionId = getChannelId(ctx.channel());
             String sessionShortId = getChannelShortId(ctx.channel());
@@ -43,8 +39,9 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<Object> {
                 createSession(ctx);
                 ctx.channel().writeAndFlush(new TextWebSocketFrame(TEXT_RESPONSE_PART_SESSION + sessionId));
             } else {
-                sessions.forEach((key, value) -> {
-                    String prefix = key.equals(sessionId) ? "" : (sessionShortId + ": ");
+                sessionsShared.forEach((key, value) -> {
+                    boolean isSameSession = key.equals(sessionId);
+                    String prefix = isSameSession ? "" : (sessionShortId + ": ");
                     value.getContext().writeAndFlush(new TextWebSocketFrame(prefix + textMessage));
                 });
             }
@@ -56,15 +53,15 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<Object> {
 
     private void createSession(ChannelHandlerContext ctx) {
         String sessionId = getChannelId(ctx.channel());
+        logger.debug("createSession {}", sessionId);
         sessionsShared.put(sessionId, new WebSocketSession(ctx));
-        sessions.put(sessionId, new WebSocketSession(ctx));
     }
 
     private void removeSession(ChannelHandlerContext ctx) {
         String sessionId = getChannelId(ctx.channel());
-        synchronized (sessions) {
+        logger.debug("removeSession {}", sessionId);
+        synchronized (sessionsShared) {
             sessionsShared.remove(sessionId);
-            sessions.remove(sessionId);
         }
     }
 

@@ -21,12 +21,22 @@ class WebSocketServerVerticalHtmlTest {
 
     @Test
     public void webSocketHtmlTest() throws Exception {
+        testWebSocketHtml("");
+    }
+
+    @Test
+    public void webSocketIndexHtmlTest() throws Exception {
+        testWebSocketHtml("/index.html");
+    }
+
+    @Test
+    private void testWebSocketHtml(String path) throws Exception {
         int port = webSocketServerVertical.actualPort();
 
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder(
-                        URI.create("http://localhost:" + port))
+                        URI.create("http://localhost:" + port + path))
                 .header("accept", "application/json")
                 .build();
 
