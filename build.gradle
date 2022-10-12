@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'io.quarkus'
     id 'checkstyle'
+    id 'jacoco'
 }
 
 println "Starting gradle build."
@@ -65,6 +66,10 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+test {
+    finalizedBy jacocoTestReport
+}
+
 compileJava {
     options.encoding = 'UTF-8'
     options.compilerArgs << '-parameters'
@@ -85,4 +90,57 @@ tasks.withType(Checkstyle) {
         html.required = true
     }
     dependsOn(tasks.compileQuarkusTestGeneratedSourcesJava)
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
+jacoco {
+    toolVersion = "0.8.8"
+}
+
+def jacocoInclusions = [
+        '**/com/kvara/io/**'
+];
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
+    }
+    getExecutionData().setFrom(fileTree(buildDir).include('/jacoco/*.exec'));
+    afterEvaluate {
+        classDirectories.from = files(classDirectories.files.collect {
+            fileTree(dir: it, include: jacocoInclusions)
+        })
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    afterEvaluate {
+        classDirectories.from = files(classDirectories.files.collect {
+            fileTree(dir: it, include: jacocoInclusions)
+        })
+    }
+    violationRules {
+        rule {
+            enabled = true
+            failOnViolation = true
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.90
+            }
+        }
+        rule {
+            enabled = true
+            failOnViolation = true
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+    }
 }
