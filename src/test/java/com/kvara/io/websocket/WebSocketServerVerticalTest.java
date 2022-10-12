@@ -6,6 +6,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.worldy.sockiopath.websocket.client.BootstrappedWebSocketClient;
 import org.junit.jupiter.api.Test;
 
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -16,6 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 class WebSocketServerVerticalTest extends AbstractTest {
 
+    @Inject
+    WebSocketServerVertical webSocketServerVertical;
+
     @Test
     public void webSocketSessionTest() throws Exception {
 
@@ -25,7 +29,7 @@ class WebSocketServerVerticalTest extends AbstractTest {
 
         BootstrappedWebSocketClient client = new BootstrappedWebSocketClient(
                 "localhost",
-                WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
+                webSocketServerVertical.actualPort(),
                 "/websocket",
                 new CountDownLatchChannelHandler(latch, responseMap, (message) -> {
                 }),

@@ -5,6 +5,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.StringUtils;
 
+import javax.inject.Inject;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -15,9 +16,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class WebSocketServerVerticalHtmlTest {
 
+    @Inject
+    WebSocketServerVertical webSocketServerVertical;
+
     @Test
     public void webSocketHtmlTest() throws Exception {
-        int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
+        int port = webSocketServerVertical.actualPort();
 
         HttpClient client = HttpClient.newHttpClient();
 
@@ -35,7 +39,7 @@ class WebSocketServerVerticalHtmlTest {
 
     @Test
     public void webSocketNotFoundTest() throws Exception {
-        int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
+        int port = webSocketServerVertical.actualPort();
 
         HttpClient client = HttpClient.newHttpClient();
 
@@ -65,7 +69,7 @@ class WebSocketServerVerticalHtmlTest {
     }
 
     private void methodNotAllowedTest(HttpRequest.Builder requestBuilder) throws Exception {
-        int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
+        int port = webSocketServerVertical.actualPort();
 
         HttpClient client = HttpClient.newHttpClient();
         requestBuilder.uri(URI.create("http://localhost:" + port));

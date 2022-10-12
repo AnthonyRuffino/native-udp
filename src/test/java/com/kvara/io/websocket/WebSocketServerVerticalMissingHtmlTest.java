@@ -6,6 +6,7 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
+import javax.inject.Inject;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -17,6 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 @TestProfile(WebSocketServerVerticalMissingHtmlTest.BuildTimeValueChangeTestProfile.class)
 class WebSocketServerVerticalMissingHtmlTest {
+
+    @Inject
+    WebSocketServerVertical webSocketServerVertical;
 
     public static class BuildTimeValueChangeTestProfile implements QuarkusTestProfile {
         @Override
@@ -30,7 +34,7 @@ class WebSocketServerVerticalMissingHtmlTest {
 
     @Test
     public void webSocketMissingHtmlTest() throws Exception {
-        int port = WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
+        int port = webSocketServerVertical.actualPort();
 
         HttpClient client = HttpClient.newHttpClient();
 

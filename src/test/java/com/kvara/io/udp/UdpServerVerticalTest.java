@@ -10,6 +10,7 @@ import io.worldy.sockiopath.udp.client.BootstrappedUdpClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -18,6 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 class UdpServerVerticalTest extends AbstractTest {
+
+    @Inject
+    UdpServerVertical udpServerVertical;
+
 
     @Value("${com.kvara.io.message.deliminator:|}")
     Character deliminator;
@@ -29,7 +34,7 @@ class UdpServerVerticalTest extends AbstractTest {
                 .setAdvice("Take care!")
                 .build();
 
-        assertUdpHelloMessage(expectedHelloReply, "guest", deliminator);
+        assertUdpHelloMessage(udpServerVertical.actualPort(), expectedHelloReply, "guest", deliminator);
     }
 
     @Test
@@ -100,16 +105,16 @@ class UdpServerVerticalTest extends AbstractTest {
         assertEquals("Unable to parse UDP message", actualHelloReply.getMessage());
     }
 
-    private static BootstrappedUdpClient getClient(CountDownLatch latch, Map<Integer, Object> responseMap) {
+    private BootstrappedUdpClient getClient(CountDownLatch latch, Map<Integer, Object> responseMap) {
         return getClient(latch, responseMap, false);
     }
 
     ;
 
-    private static BootstrappedUdpClient getClient(CountDownLatch latch, Map<Integer, Object> responseMap, boolean debug) {
+    private BootstrappedUdpClient getClient(CountDownLatch latch, Map<Integer, Object> responseMap, boolean debug) {
         return new BootstrappedUdpClient(
                 "localhost",
-                UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
+                udpServerVertical.actualPort(),
                 new AbstractTest.CountDownLatchChannelHandler(latch, responseMap, (message) -> {
                     if (debug) {
                         System.out.println("!!!!! DEBUG !!!!! [ " + message + " ]");

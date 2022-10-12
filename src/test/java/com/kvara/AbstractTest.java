@@ -1,6 +1,5 @@
 package com.kvara;
 
-import com.kvara.io.udp.UdpServerVertical;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -104,14 +103,12 @@ public abstract class AbstractTest {
         }
     }
 
-    public static void assertUdpHelloMessage(HelloReply expectedHelloReply, String sessionId, Character deliminator) throws Exception {
+    public static void assertUdpHelloMessage(int port, HelloReply expectedHelloReply, String sessionId, Character deliminator) throws Exception {
         try (DatagramSocket socket = new DatagramSocket()) {
 
             InetAddress host = InetAddress.getByName("localhost");
 
             byte[] payload = getMessageBytes("hello", sessionId, deliminator);
-
-            int port = UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow();
             java.net.DatagramPacket packet
                     = new java.net.DatagramPacket(payload, payload.length, host, port);
             socket.send(packet);
