@@ -123,5 +123,4 @@ class UdpServerVerticalTest extends AbstractTest {
                 500
         );
     }
-
 }

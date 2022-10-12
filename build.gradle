@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'io.quarkus'
+    id 'checkstyle'
 }
 
 println "Starting gradle build."
@@ -71,4 +72,16 @@ compileJava {
 
 compileTestJava {
     options.encoding = 'UTF-8'
+}
+
+checkstyle {
+    configFile = project(':').file('config/checkstyle/checkstyle.xml')
+    configProperties = [ "suppressionFile" : project(':').file('config/checkstyle/suppressions.xml')]
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.required = false
+        html.required = true
+    }
 }

@@ -50,5 +50,4 @@ class WebSocketServerVerticalTest extends AbstractTest {
         TextWebSocketFrame textWebSocketFrame2 = (TextWebSocketFrame) responseMap.get(2);
         assertEquals("test", textWebSocketFrame2.text());
     }
-
 }

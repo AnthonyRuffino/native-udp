@@ -81,5 +81,4 @@ class WebSocketAndUdpCombinedSessionTest extends AbstractTest {
 
         return sessionResponse.substring(sessionResponse.indexOf(SESSION_TOKEN_PREFIX) + SESSION_TOKEN_PREFIX.length());
     }
-
 }

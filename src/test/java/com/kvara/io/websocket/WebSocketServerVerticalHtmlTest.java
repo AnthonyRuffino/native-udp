@@ -125,6 +125,4 @@ class WebSocketServerVerticalHtmlTest {
             </form>
             </body>
             </html>""";
-
-
 }
