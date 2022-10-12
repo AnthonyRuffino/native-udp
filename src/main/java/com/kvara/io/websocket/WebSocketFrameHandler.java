@@ -34,8 +34,6 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
 
-        LocalMap<String, WebSocketSession> sessionsShared = vertx.sharedData().getLocalMap("sessions");
-
         if (frame instanceof TextWebSocketFrame textFrame) {
             String textMessage = textFrame.text();
             logger.debug("{} received {}", ctx.channel(), textMessage);

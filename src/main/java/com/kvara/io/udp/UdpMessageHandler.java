@@ -50,7 +50,7 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
     }
 
     private void logError(ChannelHandlerContext context, DatagramPacket packet) {
-        context.write(new DatagramPacket(Unpooled.copiedBuffer(
+        context.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(
                 HelloReply.newBuilder()
                         .setMessage("Unable to parse UDP message")
                         .build()

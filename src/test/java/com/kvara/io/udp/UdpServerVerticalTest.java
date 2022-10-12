@@ -1,21 +1,23 @@
 package com.kvara.io.udp;
 
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.kvara.AbstractTest;
 import com.kvara.HelloReply;
-import com.kvara.test.AbstractTestClient;
-import com.kvara.test.udp.UdpBootstrappedTestClient;
 import io.netty.channel.socket.DatagramPacket;
 import io.quarkus.test.junit.QuarkusTest;
+import io.worldy.sockiopath.udp.client.BootstrappedUdpClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
-import static com.kvara.test.udp.UdpBootstrappedTestClient.getMessageBytes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
-class UdpServerVerticalTest {
+class UdpServerVerticalTest extends AbstractTest {
 
     @Value("${com.kvara.io.message.deliminator:|}")
     Character deliminator;
@@ -27,88 +29,94 @@ class UdpServerVerticalTest {
                 .setAdvice("Take care!")
                 .build();
 
-        UdpBootstrappedTestClient.assertHelloMessage(expectedHelloReply, "guest", deliminator);
+        assertUdpHelloMessage(expectedHelloReply, "guest", deliminator);
     }
 
     @Test
-    public void udpServerBootstrappedClientTest() throws InterruptedException {
+    public void udpServerBootstrappedClientTest() throws InterruptedException, InvalidProtocolBufferException {
+
+        int testCount = 2;
+        CountDownLatch latch = new CountDownLatch(testCount);
+        Map<Integer, Object> responseMap = new HashMap<>();
+
+        BootstrappedUdpClient client = getClient(latch, responseMap);
+
+        client.startup();
+
+        sendMessage(client.getChannel(), getMessageBytes("hello", deliminator), 200);
+        Thread.sleep(500);
+
+        sendMessage(client.getChannel(), getMessageBytes("goodbye", deliminator), 200);
+
+        awaitReply(latch, 1000);
+
+        var actualHelloReply = HelloReply.parseFrom(((DatagramPacket) responseMap.get(1)).content().nioBuffer());
+        assertEquals("Hello Sarlomp", actualHelloReply.getMessage());
 
 
-        List<AbstractTestClient.Assertion> assertions = List.of(
-                (response) -> {
-                    DatagramPacket packet = (DatagramPacket) response;
-                    var actualHelloReply = HelloReply.parseFrom(packet.content().nioBuffer());
-                    assertEquals("Hello Sarlomp", actualHelloReply.getMessage());
-                },
-                (response) -> {
-                    DatagramPacket packet = (DatagramPacket) response;
-                    var actualGoodbyeReply = HelloReply.parseFrom(packet.content().nioBuffer());
-                    assertEquals("Goodbye Sarlomp", actualGoodbyeReply.getMessage());
-                }
-        );
+        var actualGoodbyeReply = HelloReply.parseFrom(((DatagramPacket) responseMap.get(2)).content().nioBuffer());
+        assertEquals("Goodbye Sarlomp", actualGoodbyeReply.getMessage());
 
-        AbstractTestClient udpBootstrappedTestClient = getClient()
-                .withAssertions(
-                        assertions
-                );
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", deliminator), 50);
-        Thread.sleep(50);
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("goodbye", deliminator), 50);
-        udpBootstrappedTestClient.checkAssertions(50);
     }
 
     @Test
-    public void udpServerBootstrappedClientCallbackTest() throws InterruptedException {
+    public void udpServerBootstrappedClientCallbackTest() throws InterruptedException, InvalidProtocolBufferException {
 
-        List<AbstractTestClient.Assertion> assertions = List.of(
-                (response) -> {
-                    DatagramPacket packet = (DatagramPacket) response;
-                    var actualHelloReply = HelloReply.parseFrom(packet.content().nioBuffer());
-                    assertEquals("I'll call you back Sarlomp", actualHelloReply.getMessage());
-                },
-                (response) -> {
-                    DatagramPacket packet = (DatagramPacket) response;
-                    var actualGoodbyeReply = HelloReply.parseFrom(packet.content().nioBuffer());
-                    assertEquals("Off Thread Message!", actualGoodbyeReply.getMessage());
-                }
-        );
+        int testCount = 2;
+        CountDownLatch latch = new CountDownLatch(testCount);
+        Map<Integer, Object> responseMap = new HashMap<>();
 
-        AbstractTestClient udpBootstrappedTestClient = getClient()
-                .withAssertions(assertions);
+        BootstrappedUdpClient client = getClient(latch, responseMap);
+        client.startup();
 
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("callback", deliminator), 50);
-        udpBootstrappedTestClient.checkAssertions(1000);
+        sendMessage(client.getChannel(), getMessageBytes("callback", deliminator), 200);
+
+        awaitReply(latch, 1000);
+
+        HelloReply actualCallbackImmediateReply = HelloReply.parseFrom(((DatagramPacket) responseMap.get(1)).content().nioBuffer());
+        assertEquals("I'll call you back Sarlomp", actualCallbackImmediateReply.getMessage());
+
+
+        HelloReply actualCallbackDelayedResponse = HelloReply.parseFrom(((DatagramPacket) responseMap.get(2)).content().nioBuffer());
+        assertEquals("Off Thread Message!", actualCallbackDelayedResponse.getMessage());
     }
 
 
     @Test
-    public void brokenDeliminatorTest() throws InterruptedException {
+    public void brokenDeliminatorTest() throws InterruptedException, InvalidProtocolBufferException {
 
+        int testCount = 1;
+        CountDownLatch latch = new CountDownLatch(testCount);
+        Map<Integer, Object> responseMap = new HashMap<>();
 
-        List<AbstractTestClient.Assertion> assertions = List.of(
-                (response) -> {
-                    DatagramPacket packet = (DatagramPacket) response;
-                    var actualHelloReply = HelloReply.parseFrom(packet.content().nioBuffer());
-                    assertEquals("Unable to parse UDP message", actualHelloReply.getMessage());
-                }
-        );
+        BootstrappedUdpClient client = getClient(latch, responseMap);
+        client.startup();
 
-        AbstractTestClient udpBootstrappedTestClient = getClient()
-                .withAssertions(
-                        assertions
-                );
+        sendMessage(client.getChannel(), getMessageBytes("hello", '$'), 200);
 
-        udpBootstrappedTestClient.sendMessage(getMessageBytes("hello", '$'), 50);
-        udpBootstrappedTestClient.checkAssertions(50);
+        awaitReply(latch, 5000);
+
+        var actualHelloReply = HelloReply.parseFrom(((DatagramPacket) responseMap.get(1)).content().nioBuffer());
+        assertEquals("Unable to parse UDP message", actualHelloReply.getMessage());
     }
 
-    private static UdpBootstrappedTestClient getClient() {
-        UdpBootstrappedTestClient client = new UdpBootstrappedTestClient(
+    private static BootstrappedUdpClient getClient(CountDownLatch latch, Map<Integer, Object> responseMap) {
+        return getClient(latch, responseMap, false);
+    }
+
+    ;
+
+    private static BootstrappedUdpClient getClient(CountDownLatch latch, Map<Integer, Object> responseMap, boolean debug) {
+        return new BootstrappedUdpClient(
                 "localhost",
                 UdpServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
-                50
+                new AbstractTest.CountDownLatchChannelHandler(latch, responseMap, (message) -> {
+                    if (debug) {
+                        System.out.println("!!!!! DEBUG !!!!! [ " + message + " ]");
+                    }
+                }),
+                500
         );
-        client.startup();
-        return client;
     }
+
 }

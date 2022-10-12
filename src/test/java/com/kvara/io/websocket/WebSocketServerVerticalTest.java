@@ -1,93 +1,50 @@
 package com.kvara.io.websocket;
 
-
-import com.kvara.test.AbstractTestClient;
-import com.kvara.test.websocket.WebSocketBootstrappedTestClient;
+import com.kvara.AbstractTest;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.quarkus.test.junit.QuarkusTest;
+import io.worldy.sockiopath.websocket.client.BootstrappedWebSocketClient;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-class WebSocketServerVerticalTest {
+class WebSocketServerVerticalTest extends AbstractTest {
 
     @Test
     public void webSocketSessionTest() throws Exception {
 
-        List<AbstractTestClient.Assertion> assertions = List.of(
-                (response) -> {
-                    TextWebSocketFrame textFrame = (TextWebSocketFrame) response;
-                    assertTrue(textFrame.text().startsWith("session|"));
-                },
-                (response) -> {
-                    TextWebSocketFrame textFrame = (TextWebSocketFrame) response;
-                    assertEquals("test", textFrame.text());
-                }
-        );
+        int testCount = 2;
+        CountDownLatch latch = new CountDownLatch(testCount);
+        Map<Integer, Object> responseMap = new HashMap<>();
 
-        AbstractTestClient client = getClient()
-                .withAssertions(
-                        assertions
-                );
-        client.startup();
-
-        client.sendMessage(new TextWebSocketFrame("join"), 50);
-        client.sendMessage(new TextWebSocketFrame("test"), 50);
-        client.checkAssertions(50);
-
-    }
-
-
-    @Test
-    public void webSocketSessionJoinTest() throws Exception {
-
-        List<AbstractTestClient.Assertion> assertions = List.of(
-                (response) -> {
-                    TextWebSocketFrame textFrame = (TextWebSocketFrame) response;
-                    assertTrue(textFrame.text().startsWith("session|"));
-                }
-        );
-
-        AbstractTestClient client1 = getClient()
-                .withAssertions(
-                        assertions
-                );
-        client1.startup();
-
-        WebSocketFrame frame1 = new TextWebSocketFrame("join");
-        client1.sendMessage(frame1, 50);
-        client1.checkAssertions(50);
-
-        if (!client1.shutdown().await(5000, TimeUnit.MILLISECONDS)) {
-            throw new RuntimeException("Client1 took too long to shutdown.");
-        }
-
-        AbstractTestClient client2 = getClient()
-                .withAssertions(
-                        assertions
-                );
-        client2.startup();
-
-        WebSocketFrame frame2 = new TextWebSocketFrame("join");
-        client2.sendMessage(frame2, 50);
-        client2.checkAssertions(50);
-
-    }
-
-    private static WebSocketBootstrappedTestClient getClient() {
-        return new WebSocketBootstrappedTestClient(
+        BootstrappedWebSocketClient client = new BootstrappedWebSocketClient(
                 "localhost",
                 WebSocketServerVertical.BOUND_PORTS.values().stream().findFirst().orElseThrow(),
-                500, "/websocket",
-                false,
+                "/websocket",
+                new CountDownLatchChannelHandler(latch, responseMap, (message) -> {
+                }),
+                null,
+                500,
                 500
         );
+        client.startup();
+
+        sendMessage(client.getChannel(), "join");
+        Thread.sleep(2L);
+        sendMessage(client.getChannel(), "test", 50);
+        awaitReply(latch);
+
+        TextWebSocketFrame textWebSocketFrame1 = (TextWebSocketFrame) responseMap.get(1);
+        assertTrue(textWebSocketFrame1.text().startsWith("session|"));
+
+        TextWebSocketFrame textWebSocketFrame2 = (TextWebSocketFrame) responseMap.get(2);
+        assertEquals("test", textWebSocketFrame2.text());
     }
 
 }
