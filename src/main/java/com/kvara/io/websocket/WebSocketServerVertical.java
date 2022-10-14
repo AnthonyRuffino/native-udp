@@ -14,6 +14,7 @@ import io.worldy.sockiopath.websocket.session.MapBackedSessionStore;
 import io.worldy.sockiopath.websocket.session.SessionStore;
 import io.worldy.sockiopath.websocket.session.WebSocketSession;
 import io.worldy.sockiopath.websocket.session.WebSocketSessionHandler;
+import io.worldy.sockiopath.websocket.ui.WebSocketIndexPageHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;

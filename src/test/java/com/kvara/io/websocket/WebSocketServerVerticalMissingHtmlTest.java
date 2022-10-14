@@ -27,7 +27,7 @@ class WebSocketServerVerticalMissingHtmlTest {
         public Map<String, String> getConfigOverrides() {
             return Map.of(
                     "com.kvara.io.websocket.server.htmlTemplatePath", "static/missing.html",
-                    "quarkus.log.category.\"com.kvara.io.websocket.WebSocketIndexPageHandler\".level", "OFF"
+                    "quarkus.log.category.\"io.worldy.sockiopath.websocket.ui.WebSocketIndexPageHandler\".level", "OFF"
             );
         }
     }
