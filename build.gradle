@@ -50,7 +50,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-grpc'
     implementation 'org.apache.camel.quarkus:camel-quarkus-netty'
     implementation 'io.quarkus:quarkus-arc'
-    implementation 'io.worldy:sockiopath:0.0.6'
+    implementation 'io.worldy:sockiopath:0.0.7'
 
     testImplementation 'io.quarkus:quarkus-test-vertx:2.8.3.Final'
 

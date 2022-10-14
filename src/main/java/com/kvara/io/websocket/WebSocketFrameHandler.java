@@ -13,11 +13,10 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class WebSocketFrameHandler extends WebSocketSessionHandler<WebSocketSession> {
+public class WebSocketFrameHandler extends WebSocketSessionHandler {
 
     public WebSocketFrameHandler(Vertx vertx) {
         super(getSessionStore(vertx));
-
     }
 
     private static SessionStore<WebSocketSession> getSessionStore(Vertx vertx) {
