@@ -10,7 +10,7 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.eventbus.Message;
 import io.vertx.mutiny.core.shareddata.LocalMap;
-import io.worldy.sockiopath.websocket.session.WebSocketSession;
+import io.worldy.sockiopath.session.SockiopathSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +25,7 @@ public class UdpMessageHandler extends SimpleChannelInboundHandler<DatagramPacke
 
     private final Vertx vertx;
 
-    private final LocalMap<String, WebSocketSession> sessionsShared;
+    private final LocalMap<String, SockiopathSession> sessionsShared;
     private final Function<ByteBuffer, Optional<ParsedMessage>> messageParser;
     private ChannelHandlerContext ctx;
 
