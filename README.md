@@ -2,6 +2,11 @@
 
 ## Running the application in dev mode
 
+Set up the pre-commit hook
+```shell script
+ln -s ../../pre-commit.sh .git/hooks/pre-commit
+```
+
 You can run your application in dev mode that enables live coding using:
 ```shell script
 ./gradlew quarkusDev
