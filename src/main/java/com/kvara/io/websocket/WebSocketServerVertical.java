@@ -2,11 +2,18 @@ package com.kvara.io.websocket;
 
 import com.kvara.io.ParsedMessage;
 import com.kvara.io.SockiopathServerVertical;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.SocketChannel;
+import io.vertx.core.shareddata.LocalMap;
+import io.vertx.core.shareddata.Shareable;
 import io.worldy.sockiopath.SockiopathServer;
 import io.worldy.sockiopath.websocket.WebSocketServer;
+import io.worldy.sockiopath.websocket.session.MapBackedSessionStore;
+import io.worldy.sockiopath.websocket.session.SessionStore;
+import io.worldy.sockiopath.websocket.session.WebSocketSession;
+import io.worldy.sockiopath.websocket.session.WebSocketSessionHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,9 +47,17 @@ public class WebSocketServerVertical extends SockiopathServerVertical {
     @Override
     protected SockiopathServer sockiopathServer() {
 
+        LocalMap<String, WebSocketSession> sessionMap = vertx.getDelegate().sharedData().getLocalMap("sessions");
+        SessionStore<WebSocketSession> sessionStore = new MapBackedSessionStore(sessionMap) {
+            @Override
+            public WebSocketSession createSession(ChannelHandlerContext ctx) {
+                return new SharedWebSocketSession(ctx);
+            }
+        };
+
         List<Supplier<SimpleChannelInboundHandler<?>>> messageHandlerSupplier = List.of(
                 () -> new WebSocketIndexPageHandler(SockiopathServer.DEFAULT_WEB_SOCKET_PATH, htmlTemplatePath),
-                () -> new WebSocketFrameHandler(vertx)
+                () -> new WebSocketSessionHandler(sessionStore)
         );
 
         ChannelInitializer<SocketChannel> newHandler = SockiopathServer.basicWebSocketChannelHandler(
@@ -55,5 +70,11 @@ public class WebSocketServerVertical extends SockiopathServerVertical {
                 Executors.newFixedThreadPool(1),
                 port
         );
+    }
+
+    private static class SharedWebSocketSession extends WebSocketSession implements Shareable {
+        SharedWebSocketSession(ChannelHandlerContext context) {
+            super(context);
+        }
     }
 }
