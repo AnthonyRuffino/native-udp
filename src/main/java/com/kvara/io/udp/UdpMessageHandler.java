@@ -2,7 +2,6 @@ package com.kvara.io.udp;
 
 import com.kvara.HelloReply;
 import com.kvara.io.ParsedMessage;
-import com.kvara.io.websocket.session.WebSocketSession;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -11,6 +10,7 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.eventbus.Message;
 import io.vertx.mutiny.core.shareddata.LocalMap;
+import io.worldy.sockiopath.websocket.session.WebSocketSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

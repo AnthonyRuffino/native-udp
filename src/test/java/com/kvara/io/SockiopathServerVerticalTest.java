@@ -27,6 +27,11 @@ class SockiopathServerVerticalTest {
                     public CompletableFuture<StartServerResult> start() {
                         return new CompletableFuture<>();
                     }
+
+                    @Override
+                    public int actualPort() {
+                        return 0;
+                    }
                 };
             }
         }.start(promise);
@@ -51,6 +56,11 @@ class SockiopathServerVerticalTest {
                                 )
                         );
                         return failedFuture;
+                    }
+
+                    @Override
+                    public int actualPort() {
+                        return 0;
                     }
                 };
             }
