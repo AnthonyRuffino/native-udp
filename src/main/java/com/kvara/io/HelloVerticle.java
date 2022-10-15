@@ -4,6 +4,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.kvara.HelloReply;
 import com.kvara.HelloRequest;
 import io.quarkus.vertx.ConsumeEvent;
+import io.worldy.sockiopath.messaging.SockiopathMessage;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -14,7 +15,7 @@ public class HelloVerticle {
     public static final String MESSAGE_VULCAN_ADVICE = "Live long and prosper!";
 
     @ConsumeEvent("hello")
-    public byte[] hello(ParsedMessage message) throws InvalidProtocolBufferException {
+    public byte[] hello(SockiopathMessage message) throws InvalidProtocolBufferException {
         HelloRequest helloRequest = HelloRequest.parseFrom(message.data());
 
 
@@ -27,7 +28,7 @@ public class HelloVerticle {
     }
 
     @ConsumeEvent("goodbye")
-    public byte[] goodbye(ParsedMessage message) throws InvalidProtocolBufferException {
+    public byte[] goodbye(SockiopathMessage message) throws InvalidProtocolBufferException {
         HelloRequest helloRequest = HelloRequest.parseFrom(message.data());
 
         HelloReply helloReply = HelloReply.newBuilder()
@@ -39,7 +40,7 @@ public class HelloVerticle {
     }
 
     @ConsumeEvent("callback")
-    public byte[] callback(ParsedMessage message) throws InvalidProtocolBufferException {
+    public byte[] callback(SockiopathMessage message) throws InvalidProtocolBufferException, InterruptedException {
         HelloRequest helloRequest = HelloRequest.parseFrom(message.data());
 
         HelloReply helloReply = HelloReply.newBuilder()

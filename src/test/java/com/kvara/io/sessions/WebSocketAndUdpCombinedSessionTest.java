@@ -68,13 +68,6 @@ class WebSocketAndUdpCombinedSessionTest extends AbstractTest {
 
         int port = udpServerVertical.actualPort();
         assertUdpHelloMessage(port, expectedHelloReply, sessionId, deliminator);
-
-        HelloReply expectedHFailedValidationReply = HelloReply.newBuilder()
-                .setMessage("You did not send a valid session ID.")
-                .setAdvice("Connect with WebSockets to and send a 'join' message to get a session id!")
-                .build();
-
-        assertUdpHelloMessage(port, expectedHFailedValidationReply, "erroneous", deliminator);
     }
 
     private String extractSessionId(String sessionResponse) {

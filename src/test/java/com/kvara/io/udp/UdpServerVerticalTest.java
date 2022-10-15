@@ -4,10 +4,16 @@ package com.kvara.io.udp;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.kvara.AbstractTest;
 import com.kvara.HelloReply;
+import com.kvara.io.SharedSockiopathSession;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.quarkus.test.junit.QuarkusTest;
+import io.vertx.core.shareddata.LocalMap;
+import io.vertx.mutiny.core.Vertx;
+import io.worldy.sockiopath.session.SockiopathSession;
 import io.worldy.sockiopath.udp.client.BootstrappedUdpClient;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Value;
 
 import javax.inject.Inject;
@@ -16,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 class UdpServerVerticalTest extends AbstractTest {
@@ -27,6 +34,10 @@ class UdpServerVerticalTest extends AbstractTest {
     @Value("${com.kvara.io.message.deliminator:|}")
     Character deliminator;
 
+
+    @Inject
+    Vertx vertx;
+
     @Test
     public void udpServerRawDatagramPacketTest() throws Exception {
         HelloReply expectedHelloReply = HelloReply.newBuilder()
@@ -34,11 +45,17 @@ class UdpServerVerticalTest extends AbstractTest {
                 .setAdvice("Take care!")
                 .build();
 
+        LocalMap<String, SockiopathSession> sessionMap = vertx.getDelegate().sharedData().getLocalMap("sessions");
+        sessionMap.put("guest", new SharedSockiopathSession(Mockito.mock(ChannelHandlerContext.class)));
+
         assertUdpHelloMessage(udpServerVertical.actualPort(), expectedHelloReply, "guest", deliminator);
     }
 
     @Test
     public void udpServerBootstrappedClientTest() throws InterruptedException, InvalidProtocolBufferException {
+
+        LocalMap<String, SockiopathSession> sessionMap = vertx.getDelegate().sharedData().getLocalMap("sessions");
+        sessionMap.put("guest", new SharedSockiopathSession(Mockito.mock(ChannelHandlerContext.class)));
 
         int testCount = 2;
         CountDownLatch latch = new CountDownLatch(testCount);
@@ -67,6 +84,9 @@ class UdpServerVerticalTest extends AbstractTest {
     @Test
     public void udpServerBootstrappedClientCallbackTest() throws InterruptedException, InvalidProtocolBufferException {
 
+        LocalMap<String, SockiopathSession> sessionMap = vertx.getDelegate().sharedData().getLocalMap("sessions");
+        sessionMap.put("guest", new SharedSockiopathSession(Mockito.mock(ChannelHandlerContext.class)));
+
         int testCount = 2;
         CountDownLatch latch = new CountDownLatch(testCount);
         Map<Integer, Object> responseMap = new HashMap<>();
@@ -90,6 +110,9 @@ class UdpServerVerticalTest extends AbstractTest {
     @Test
     public void brokenDeliminatorTest() throws InterruptedException, InvalidProtocolBufferException {
 
+        LocalMap<String, SockiopathSession> sessionMap = vertx.getDelegate().sharedData().getLocalMap("sessions");
+        sessionMap.put("guest", new SharedSockiopathSession(Mockito.mock(ChannelHandlerContext.class)));
+
         int testCount = 1;
         CountDownLatch latch = new CountDownLatch(testCount);
         Map<Integer, Object> responseMap = new HashMap<>();
@@ -99,10 +122,8 @@ class UdpServerVerticalTest extends AbstractTest {
 
         sendMessage(client.getChannel(), getMessageBytes("hello", '$'), 200);
 
-        awaitReply(latch, 5000);
-
-        var actualHelloReply = HelloReply.parseFrom(((DatagramPacket) responseMap.get(1)).content().nioBuffer());
-        assertEquals("Unable to parse UDP message", actualHelloReply.getMessage());
+        awaitReply(latch, 500, true);
+        assertNull(responseMap.get(1));
     }
 
     private BootstrappedUdpClient getClient(CountDownLatch latch, Map<Integer, Object> responseMap) {

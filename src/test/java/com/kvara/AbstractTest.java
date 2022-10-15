@@ -55,8 +55,15 @@ public abstract class AbstractTest {
     }
 
     protected void awaitReply(CountDownLatch latch, int timeoutMillis) throws InterruptedException {
-        if (!latch.await(timeoutMillis, TimeUnit.MILLISECONDS)) {
+        awaitReply(latch, timeoutMillis, false);
+    }
+
+    protected void awaitReply(CountDownLatch latch, int timeoutMillis, boolean expectTimeout) throws InterruptedException {
+        boolean timeout = !latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
+        if (timeout && !expectTimeout) {
             fail("waiting for response took too long");
+        } else if (!timeout && expectTimeout) {
+            fail("timeout was expected");
         }
     }
 
