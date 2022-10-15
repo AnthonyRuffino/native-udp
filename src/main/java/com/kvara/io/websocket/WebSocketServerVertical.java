@@ -28,6 +28,9 @@ public class WebSocketServerVertical extends SockiopathServerVertical {
     @Value("${com.kvara.io.websocket.server.htmlTemplatePath}")
     String htmlTemplatePath;
 
+    @Value("${com.kvara.io.message.deliminator:|}")
+    Character deliminator;
+
     public WebSocketServerVertical() {
         super();
     }
@@ -35,13 +38,11 @@ public class WebSocketServerVertical extends SockiopathServerVertical {
 
     @Override
     protected SockiopathServer sockiopathServer() {
-
         LocalMap<String, SockiopathSession> sessionMap = vertx.getDelegate().sharedData().getLocalMap("sessions");
         SessionStore<SockiopathSession> sessionStore = SharedSockiopathSession.localMapMapBackedSessionStore(sessionMap);
-
         List<Supplier<SimpleChannelInboundHandler<?>>> messageHandlerSupplier = List.of(
                 () -> new WebSocketIndexPageHandler(SockiopathServer.DEFAULT_WEB_SOCKET_PATH, htmlTemplatePath),
-                () -> new WebSocketHandler(sessionStore)
+                () -> new WebSocketHandler(sessionStore, getMessageHandlers(), deliminator)
         );
 
         ChannelInitializer<SocketChannel> newHandler = SockiopathServer.basicWebSocketChannelHandler(

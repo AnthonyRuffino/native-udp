@@ -41,8 +41,8 @@ repositories {
 }
 
 dependencies {
+    implementation 'io.worldy:sockiopath:0.0.10-SNAPSHOT'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
-
     implementation 'io.quarkus:quarkus-vertx'
     implementation 'io.quarkus:quarkus-spring-di'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
@@ -50,7 +50,6 @@ dependencies {
     implementation 'io.quarkus:quarkus-grpc'
     implementation 'org.apache.camel.quarkus:camel-quarkus-netty'
     implementation 'io.quarkus:quarkus-arc'
-    implementation 'io.worldy:sockiopath:0.0.9'
 
     testImplementation 'io.quarkus:quarkus-test-vertx:2.8.3.Final'
 
@@ -88,7 +87,7 @@ compileTestJava {
 
 checkstyle {
     configFile = project(':').file('config/checkstyle/checkstyle.xml')
-    configProperties = [ "suppressionFile" : project(':').file('config/checkstyle/suppressions.xml')]
+    configProperties = ["suppressionFile": project(':').file('config/checkstyle/suppressions.xml')]
 }
 
 tasks.withType(Checkstyle) {
