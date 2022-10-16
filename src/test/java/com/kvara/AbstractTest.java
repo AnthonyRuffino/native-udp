@@ -6,7 +6,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.worldy.sockiopath.udp.UdpServer;
+import io.worldy.sockiopath.SockiopathServer;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +94,7 @@ public abstract class AbstractTest {
             } else if (msg instanceof DatagramPacket datagramPacket) {
                 synchronized (latch) {
                     int count = responseCount.incrementAndGet();
-                    debug.accept(count + ": " + UdpServer.byteBufferToString(datagramPacket.copy().content().nioBuffer()));
+                    debug.accept(count + ": " + SockiopathServer.byteBufferToString(datagramPacket.copy().content().nioBuffer()));
                     responseMap.put(count, datagramPacket.copy());
                     latch.countDown();
                 }

@@ -1,5 +1,6 @@
 package com.kvara.io;
 
+import io.netty.channel.ChannelFuture;
 import io.vertx.core.Promise;
 import io.worldy.sockiopath.SockiopathServer;
 import io.worldy.sockiopath.StartServerResult;
@@ -7,6 +8,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -19,6 +22,7 @@ class SockiopathServerVerticalTest {
 
     @Test
     void startFutureTimesOut() {
+
         new SockiopathServerVertical() {
             @Override
             protected SockiopathServer sockiopathServer() {
@@ -31,6 +35,16 @@ class SockiopathServerVerticalTest {
                     @Override
                     public int actualPort() {
                         return 0;
+                    }
+
+                    @Override
+                    public ExecutorService getExecutorService() {
+                        return Executors.newFixedThreadPool(1);
+                    }
+
+                    @Override
+                    public ChannelFuture getCloseFuture() {
+                        return null;
                     }
                 };
             }
@@ -61,6 +75,16 @@ class SockiopathServerVerticalTest {
                     @Override
                     public int actualPort() {
                         return 0;
+                    }
+
+                    @Override
+                    public ExecutorService getExecutorService() {
+                        return Executors.newFixedThreadPool(1);
+                    }
+
+                    @Override
+                    public ChannelFuture getCloseFuture() {
+                        return null;
                     }
                 };
             }
