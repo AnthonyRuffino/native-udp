@@ -9,8 +9,8 @@ import io.vertx.core.shareddata.LocalMap;
 import io.worldy.sockiopath.SockiopathServer;
 import io.worldy.sockiopath.session.SessionStore;
 import io.worldy.sockiopath.session.SockiopathSession;
-import io.worldy.sockiopath.websocket.WebSocketHandler;
 import io.worldy.sockiopath.websocket.WebSocketServer;
+import io.worldy.sockiopath.websocket.WebSocketServerHandler;
 import io.worldy.sockiopath.websocket.ui.WebSocketIndexPageHandler;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -42,16 +42,16 @@ public class WebSocketServerVertical extends SockiopathServerVertical {
         SessionStore<SockiopathSession> sessionStore = SharedSockiopathSession.localMapMapBackedSessionStore(sessionMap);
         List<Supplier<SimpleChannelInboundHandler<?>>> messageHandlerSupplier = List.of(
                 () -> new WebSocketIndexPageHandler(SockiopathServer.DEFAULT_WEB_SOCKET_PATH, htmlTemplatePath),
-                () -> new WebSocketHandler(sessionStore, getMessageHandlers(), deliminator)
+                () -> new WebSocketServerHandler(sessionStore, getMessageHandlers(), deliminator)
         );
 
-        ChannelInitializer<SocketChannel> newHandler = SockiopathServer.basicWebSocketChannelHandler(
+        ChannelInitializer<SocketChannel> channelInitializer = SockiopathServer.basicWebSocketChannelHandler(
                 messageHandlerSupplier,
                 null
         );
 
         return new WebSocketServer(
-                newHandler,
+                channelInitializer,
                 Executors.newFixedThreadPool(1),
                 port
         );

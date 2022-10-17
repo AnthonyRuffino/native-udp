@@ -2,11 +2,12 @@ package com.kvara.io.udp;
 
 import com.kvara.io.SharedSockiopathSession;
 import com.kvara.io.SockiopathServerVertical;
+import io.netty.channel.ChannelHandler;
 import io.vertx.core.shareddata.LocalMap;
 import io.worldy.sockiopath.SockiopathServer;
 import io.worldy.sockiopath.session.SessionStore;
 import io.worldy.sockiopath.session.SockiopathSession;
-import io.worldy.sockiopath.udp.UdpHandler;
+import io.worldy.sockiopath.udp.UdpServerHandler;
 import io.worldy.sockiopath.udp.UdpServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ public class UdpServerVertical extends SockiopathServerVertical {
     protected SockiopathServer sockiopathServer() {
         LocalMap<String, SockiopathSession> sessionMap = getSessions();
         SessionStore<SockiopathSession> sessionStore = SharedSockiopathSession.localMapMapBackedSessionStore(sessionMap);
-        UdpHandler channelHandler = new UdpHandler(sessionStore, getMessageHandlers(), deliminator);
+        ChannelHandler channelHandler = new UdpServerHandler(sessionStore, getMessageHandlers(), deliminator);
         return new UdpServer(
                 channelHandler,
                 Executors.newFixedThreadPool(1),
